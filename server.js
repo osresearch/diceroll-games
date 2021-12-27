@@ -20,38 +20,67 @@ app.get('/', (req, res) => {
 });
 app.use(express.static('./static'));
 
+const reserved_topics = {
+	"to": 1,
+	"room": 1,
+	"disconnected": 1,
+	"connected": 1,
+	"members": 1,
+};
+
+
+function room_join(socket, room)
+{
+	console.log(socket.id + ":" + room + ":joining");
+	const members = io.sockets.adapter.rooms.get(room);
+
+	socket.room = room;
+	socket.join(room);
+	socket.to(socket.id).emit('members', room, members);
+	socket.broadcast.to(socket.room).emit('connected', socket.id);
+}
+
+function room_leave(socket)
+{
+	if (!socket.room)
+		return;
+	console.log(socket.id + ":" + socket.room + ":leaving");
+	socket.broadcast.to(socket.room).emit('disconnected', socket.id);
+	socket.leave(socket.room);
+	socket.room = null;
+}
+
+
 io.on('connection', (socket) => {
 	console.log(socket.id, 'connect', socket.handshake.address);
 
-	socket.room = "default";
-	socket.join(socket.room);
+	room_join(socket, "default");
 
 	socket.on('disconnect', () => {
+		// they are gone, so tell the room
 		console.log(socket.id, "disconnect");
-		io.to(socket.room).send('disconnected', socket.id);
+		io.to(socket.room).emit('disconnected', socket.id);
 	});
 
-	socket.on('room', (msg) => {
-		console.log(socket.id, "room", socket.room, msg);
-		io.to(socket.room).send('disconnected', socket.id);
-		socket.leave(socket.room);
-		socket.room = msg;
-		socket.join(socket.room);
-		io.to(socket.room).send('connected', socket.id);
+	socket.on('room', (room) => {
+		// only one room per client, so leave their existing room
+		room_leave(socket);
+		room_join(socket, room);
 	});
 
-	socket.on('to', (msg) => {
-		// private message to another socket id
-		const dest = msg.dest;
-		const topic = msg.topic;
-		delete msg.dest;
-		delete msg.topic;
+	socket.on('to', (dest,topic,msg) => {
+		// private message to another socket id or room
+		console.log(socket.id + ":dest=" + dest + ":topic=" + topic, "msg=", msg);
 		socket.to(dest).emit(topic, socket.id, msg);
 	});
 
 	socket.onAny((topic,msg) => {
+		// don't forward any reserved topics
+		if (topic in reserved_topics)
+			return;
+
 		try {
-			console.log(socket.id, socket.room, topic, msg);
+			console.log("GENERIC", socket.id + ":" + socket.room + ":" + topic, msg);
 			socket.broadcast.to(socket.room).emit(topic, socket.id, msg);
 		} catch (err) {
 			console.log(socket.id, "error", err);

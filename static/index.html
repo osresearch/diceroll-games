@@ -38,6 +38,11 @@ sock.on('connect', () => {
 	sock.emit('room', 'demo');
 });
 
+// called when a new room is joined
+sock.on('members', (room, members) => {
+	console.log(room + " members", members);
+});
+
 // called when a new peer joins the room
 sock.on('connected', (id) => {
 	console.log(id, "new room member");
