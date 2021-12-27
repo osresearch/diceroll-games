@@ -35,10 +35,12 @@ const sock = io.connect(document.location.origin);
 // called when a connection to the server is established
 sock.on('connect', () => {
 	// join the room in the URL
+	console.log("RECONNECTED");
 	sock.emit('room', 'demo');
 });
 
-// called when a new room is joined
+// server sends this message when a new room is joined
+// to inform us of the other members
 sock.on('members', (room, members) => {
 	console.log(room + " members", members);
 });
