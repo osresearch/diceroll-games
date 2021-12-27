@@ -25,17 +25,73 @@
   <script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>
 
 <style>
+body  {
+	background: black;
+	color: #00ff00;
+	font: fixed;
+}
+
+.private-message {
+	color: red;
+}
+
+.server-message {
+	color: blue;
+}
+
 </style>
 </head>
 <body>
+<div id="log"></div>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
 </body>
 <script>
-const sock = io.connect(document.location.origin);
+const server = document.location.origin;
+const sock = io.connect(server);
+
+let form = document.getElementById('form');
+let input = document.getElementById('input');
+
+form.addEventListener('submit', function(e) {
+	e.preventDefault();
+	let msg = input.value;
+	if (!msg)
+		return;
+	if (msg[0] == '@')
+	{
+		// todo: private message
+	}
+
+	sock.emit('message', msg);
+	input.value = '';
+});
+
+function log_append(src, msg, msg_class="message")
+{
+	const log = document.getElementById("log");
+	const e = document.createElement('p');
+	const s = document.createElement('span');
+	s.classList.add("sender");
+	s.innerText = src;
+	e.appendChild(s);
+
+	e.appendChild(document.createTextNode(" "));
+
+	const m = document.createElement('span');
+	m.classList.add(msg_class);
+	m.innerText = msg;
+
+	e.appendChild(m);
+	log.appendChild(e);
+}
 
 // called when a connection to the server is established
 sock.on('connect', () => {
 	// join the room in the URL
 	console.log("RECONNECTED");
+	log_append(server, 'Reconnected', 'server-message');
 	sock.emit('room', 'demo');
 });
 
@@ -43,25 +99,30 @@ sock.on('connect', () => {
 // to inform us of the other members
 sock.on('members', (room, members) => {
 	console.log(room + " members", members);
+	log_append(server, 'members=' + members, 'server-message');
 });
 
 // called when a new peer joins the room
 sock.on('connected', (id) => {
 	console.log(id, "new room member");
+	log_append(id, 'JOINED', 'server-message');
 });
 
 // called when a peer leaves the room
 sock.on('disconnected', (id) => {
 	console.log(id, "room member left");
+	log_append(id, 'LEFT', 'server-message');
 });
 
 // called if a peer sends a message to us
 sock.on('direct', (id,msg) => {
 	console.log(id, "direct message", msg);
+	log_append(id, msg, 'private-message');
 });
 
 sock.on('message', (id,msg) => {
 	console.log(id, "public message", msg);
+	log_append(id, msg, 'message');
 });
 
 </script>
