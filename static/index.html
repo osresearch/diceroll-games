@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chat room demo</title>
+
+<!-- HTML Meta Tags -->
+<meta name="description" content="Multi-party chat demo">
+
+<!-- Facebook Meta Tags -->
+<meta property="og:url" content="https://echo.v.st/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Multi-party chat demo">
+<meta property="og:description" content="Websocket based chat room demo">
+<meta property="og:image" content="https://echo.v.st/header.jpg">
+
+<!-- Twitter Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta property="twitter:domain" content="echo.v.st">
+<meta property="twitter:url" content="https://echo.v.st/">
+<meta name="twitter:title" content="Multi-party chat demo">
+<meta name="twitter:description" content="Websocket based chat room demo">
+<meta name="twitter:image" content="https://echo.v.st/header.jpg">
+
+
+  <script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>
+
+<style>
+</style>
+</head>
+<body>
+</body>
+<script>
+const sock = io.connect(document.location.origin);
+
+// called when a connection to the server is established
+sock.on('connect', () => {
+	// join the room in the URL
+	sock.emit('room', 'demo');
+});
+
+// called when a new peer joins the room
+sock.on('connected', (id) => {
+	console.log(id, "new room member");
+});
+
+// called when a peer leaves the room
+sock.on('disconnected', (id) => {
+	console.log(id, "room member left");
+});
+
+// called if a peer sends a message to us
+sock.on('direct', (id,msg) => {
+	console.log(id, "direct message", msg);
+});
+
+sock.on('message', (id,msg) => {
+	console.log(id, "public message", msg);
+});
+
+</script>
+</html>
