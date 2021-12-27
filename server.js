@@ -38,7 +38,6 @@ function room_join(socket, room)
 	console.log(socket.id + ":" + room + ":join");
 	const member_set = io.sockets.adapter.rooms.get(room);
 	const members = member_set ? Array.from(member_set) : [];
-	console.log("members=", members);
 
 	socket.room = room;
 	socket.join(room);
