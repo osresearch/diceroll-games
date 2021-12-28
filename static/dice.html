@@ -47,7 +47,11 @@ body  {
 .nick-self { color: blue; }
 .nick { color: #080; }
 
-#roll-button { font-size: 30px; }
+#roll-button {
+	font-size: 30px;
+	font-family: mono;
+	font-weight: bold;
+}
 
 </style>
 </head>
@@ -59,7 +63,7 @@ body  {
 <td><form id="nick-form" action=""><input id="nick-input" autocomplete="off"/></form></td>
 </tr>
 <tr>
-<td width=512px><div id="rolls"><div></div></div></td>
+<td width=768px><div id="rolls"><div></div></div></td>
 <td style="vertical-align:top"><div id="nicks"></div></td>
 </tr>
 </table>
@@ -139,7 +143,7 @@ let rolls = {};
 
 
 // input box controls to broadcast the user's nick
-let nick = sock.id;
+let nick = "UNKNOWN";
 let form = document.getElementById('nick-form');
 let input = document.getElementById('nick-input');
 
@@ -157,28 +161,38 @@ form.addEventListener('submit', (e) => {
 
 // setup for four train and road dice
 let die = [];
-die[0] = [];
-die[1] = [];
-die[2] = [];
-die[3] = [];
 
 for(let x = 0 ; x < 3 ; x++)
 {
-	die[x][0] = "images/die-rs.png";
-	die[x][1] = "images/die-rt.png";
-	die[x][2] = "images/die-rc.png";
-	die[x][3] = "images/die-ts.png";
-	die[x][4] = "images/die-tt.png";
-	die[x][5] = "images/die-tc.png";
+	die.push([
+		"images/die-rs.png",
+		"images/die-rt.png",
+		"images/die-rc.png",
+		"images/die-ts.png",
+		"images/die-tt.png",
+		"images/die-tc.png",
+	]);
 }
 
+die.push([
+	"images/die-xs.png",
+	"images/die-xx.png",
+	"images/die-xc.png",
+]);
 
-die[3][0] = "images/die-xs.png";
-die[3][1] = "images/die-xs.png";
-die[3][2] = "images/die-xx.png";
-die[3][3] = "images/die-xx.png";
-die[3][4] = "images/die-xc.png";
-die[3][5] = "images/die-xc.png";
+// lakes and piers extra die
+die.push([
+	"images/die-p1.png",
+	"images/die-p2.png",
+	"images/die-p3.png",
+]);
+
+die.push([
+	"images/die-l1.png",
+	"images/die-l2.png",
+	"images/die-l3.png",
+]);
+
 
 /*
 // numeric dice
@@ -244,6 +258,9 @@ sock.on('connect', () => {
 	// reset our peer list, cancel any die rolls in process
 	peers = {};
 	rolls = {};
+
+	if (nick == "UNKNOWN")
+		nick = sock.id;
 
 	// join the room in the URL
 	console.log(server, "RECONNECTED");
@@ -366,11 +383,74 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 		"which": which,
 		"hash": hash_str,
 	});
+
+	// if there are no peers, start the reveal
+	if (Object.entries(peers).length == 1)
+		roll_reveal(sock, which, tag_str);
+}
+
+function roll_reveal(sock, which, tag)
+{
+	// all peers have committed! time to reveal
+	const short_tag = tag.substr(0,16);
+	const my_value = rolls[tag][sock.id].value.toString(16);
+	log_append(sock.id, short_tag + " reveal " + my_value);
+
+	sock.emit('reveal', {
+		"tag": tag,
+		"which": which,
+		"value": my_value,
+	});
+
+	if (Object.entries(peers).length == 1)
+		roll_finalize(sock, which, tag);
+}
+
+function roll_finalize(sock, which, tag)
+{
+	// try to compute the result of this roll
+	// if any peers have not yet revealed this tag, then we're done
+	const roll = rolls[tag];
+	const short_tag = tag.substr(0,16);
+
+	let result = BigInt(which); //BigInt("0x" + tag);
+	for (let peer in peers)
+	{
+		if (!(peer in roll))
+			return;
+		if (!("value" in roll[peer]))
+			return;
+		result += roll[peer].value; // already bigint
+	}
+
+	const choices = die[which].length;
+	const short_result = (result >> 200n) % BigInt(choices);
+	const output = die[which][short_result];
+
+	log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
+	console.log("RESULT", tag, result, short_result, output);
+
+	// create a new output die for this roll
+	const d = document.getElementById("rolls");
+	if (!d)
+		return;
+
+	const r = d.firstChild;
+	const img = document.createElement('img');
+	img.width = 128;
+	img.height = 128;
+	img.src = output;
+	img.style.opacity = 1.0;
+	img.onclick = () => { img.style.opacity = img.style.opacity > 0.5 ? 0.25 : 1.0 };
+	r.appendChild(img);
 }
 
 // called when a peer has initiated a new roll
-function roll_row_create(src)
+// which also will update the die with the ones
+// from the roller
+function roll_row_create(src, new_die)
 {
+	die = new_die;
 	const r = document.getElementById('rolls');
 	if (!r)
 		return;
@@ -381,7 +461,8 @@ function roll_row_create(src)
 	src_div.classList.add(src == sock.id ? 'nick-self' : 'nick');
 
 	const time_div = document.createElement('span');
-	time_div.innerText = " " + new Date().toISOString();
+	const now = new Date();
+	time_div.innerText = " " + now.toISOString();
 	time_div.classList.add("timestamp");
 
 	const orow = document.createElement('div');
@@ -399,8 +480,9 @@ function roll_row_create(src)
 
 function roll_all()
 {
-	roll_row_create(sock.id);
-	sock.emit('roll');
+	roll_row_create(sock.id, die);
+	sock.emit('roll', die);
+
 	for(let i = 0 ; i < die.length ; i++)
 		roll_commit(sock,i);
 }
@@ -475,15 +557,7 @@ sock.on('commit', (src,msg) => {
 		if (!(peer in roll))
 			return;
 
-	// all peers have committed! time to reveal
-	const my_value = roll[sock.id].value.toString(16);
-	log_append(sock.id, short_tag + " reveal " + my_value);
-
-	sock.emit('reveal', {
-		"tag": tag,
-		"which": which,
-		"value": my_value,
-	});
+	roll_reveal(sock, which, tag);
 });
 
 sock.on('reveal', (src,msg) => {
@@ -533,38 +607,15 @@ sock.on('reveal', (src,msg) => {
 	their_roll.value = their_value;
 	log_append(src, tag.substr(0,16) + " reveal " + value);
 
-	// try to compute the result of this roll
-	// if any peers have not yet revealed this tag, then we're done
-	let result = BigInt(which); //BigInt("0x" + tag);
 	for (let peer in peers)
 	{
 		if (!(peer in roll))
 			return;
 		if (!("value" in roll[peer]))
 			return;
-		result += roll[peer].value; // already bigint
 	}
 
-	const choices = die[which].length;
-	const short_result = (result >> 200n) % BigInt(choices);
-	const output = die[which][short_result];
-
-	log_append(sock.id, tag.substr(0,16) + " die-" + which + " => " + short_result);
-	console.log("RESULT", tag, result, short_result, output);
-
-	// create a new output die for this roll
-	const d = document.getElementById("rolls");
-	if (!d)
-		return;
-
-	const r = d.firstChild;
-	const img = document.createElement('img');
-	img.width = 128;
-	img.height = 128;
-	img.src = output;
-	img.style.opacity = 1.0;
-	img.onclick = () => { img.style.opacity = img.style.opacity > 0.5 ? 0.25 : 1.0 };
-	r.appendChild(img);
+	roll_finalize(sock, which, tag);
 });
 
 </script>
