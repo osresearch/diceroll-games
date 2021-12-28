@@ -22,22 +22,55 @@
 <meta name="twitter:image" content="https://echo.v.st/header.jpg">
 
 
-  <script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>
+<script
+	src="https://cdn.socket.io/4.4.0/socket.io.min.js"
+	integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj"
+	crossorigin="anonymous"
+></script>
 
 <style>
 body  {
 	background: black;
 	color: #00ff00;
-	font: fixed;
+	font-family: mono;
+}
+#form {
+	background: rgba(0, 0, 0, 0.15);
+	padding: 0.25rem;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	height: 3rem;
+	box-sizing: border-box;
+	backdrop-filter: blur(10px);
+}
+#input {
+	border: none;
+	padding: 0 1rem;
+	flex-grow: 1;
+	border-radius: 2rem;
+	margin: 0.25rem;
+	font-family: mono;
+}
+#input:focus { outline: none; }
+#form > button {
+	background: #333;
+	border: none;
+	padding: 0 1rem;
+	margin: 0.25rem;
+	border-radius: 3px;
+	outline: none;
+	color: #fff;
 }
 
-.private-message {
-	color: red;
-}
 
-.server-message {
-	color: blue;
-}
+.message-private { color: #ccc; }
+.message-public { color: #0f0; }
+.message-server { color: red; }
+.sender-server { color: red; }
+.sender-self { color: blue; }
 
 </style>
 </head>
@@ -50,6 +83,7 @@ body  {
 <script>
 const server = document.location.origin;
 const sock = io.connect(server);
+let room = 'default';
 
 let form = document.getElementById('form');
 let input = document.getElementById('input');
@@ -59,12 +93,32 @@ form.addEventListener('submit', function(e) {
 	let msg = input.value;
 	if (!msg)
 		return;
+
+	if (msg[0] == '/')
+	{
+		// commands
+		const words = msg.substr(1).split(" ");
+		const cmd = words.shift();
+		if (cmd == 'join')
+		{
+			room = words[0];
+			sock.emit('room', room);
+		} else
+			log_append(sock.id, 'UNKNOWN COMMAND ' + cmd);
+	} else
 	if (msg[0] == '@')
 	{
-		// todo: private message
+		// private message to named user
+		const words = msg.substr(1).split(" ");
+		const dest = words.shift();
+		sock.emit('to', dest, 'direct', words.join(" "));
+		log_append(sock.id, msg, 'message-private');
+	} else {
+		// public message to everyone
+		sock.emit('message', msg);
+		log_append(sock.id, msg, 'message-public');
 	}
 
-	sock.emit('message', msg);
 	input.value = '';
 });
 
@@ -74,6 +128,10 @@ function log_append(src, msg, msg_class="message")
 	const e = document.createElement('p');
 	const s = document.createElement('span');
 	s.classList.add("sender");
+	if (src == server)
+		s.classList.add("sender-server");
+	if (src == sock.id)
+		s.classList.add("sender-self");
 	s.innerText = src;
 	e.appendChild(s);
 
@@ -87,42 +145,52 @@ function log_append(src, msg, msg_class="message")
 	log.appendChild(e);
 }
 
+/*
+ * These are the system level ones that the server sends to us
+ */
 // called when a connection to the server is established
 sock.on('connect', () => {
 	// join the room in the URL
 	console.log("RECONNECTED");
-	log_append(server, 'Reconnected', 'server-message');
-	sock.emit('room', 'demo');
+	log_append(server, 'Reconnected', 'message-server');
+	sock.emit('room', room);
 });
 
 // server sends this message when a new room is joined
 // to inform us of the other members
 sock.on('members', (room, members) => {
 	console.log(room + " members", members);
-	log_append(server, 'members=' + members, 'server-message');
+	log_append(server, 'joined ' + room + ' ' + members.length + ' members', 'message-server');
+
+	for(let member of members)
+		log_append(server, '+ ' + member, 'message-public');
 });
 
 // called when a new peer joins the room
-sock.on('connected', (id) => {
-	console.log(id, "new room member");
-	log_append(id, 'JOINED', 'server-message');
+sock.on('connected', (src) => {
+	console.log(src, "new room member");
+	log_append(server, '+ ' + src, 'message-public');
 });
 
 // called when a peer leaves the room
-sock.on('disconnected', (id) => {
-	console.log(id, "room member left");
-	log_append(id, 'LEFT', 'server-message');
+sock.on('disconnected', (src) => {
+	console.log(src, "room member left");
+	log_append(server, '- ' + src, 'message-public');
 });
 
+
+/*
+ * These are the ones that we define for our chat client
+ */
 // called if a peer sends a message to us
-sock.on('direct', (id,msg) => {
-	console.log(id, "direct message", msg);
-	log_append(id, msg, 'private-message');
+sock.on('direct', (src,msg) => {
+	console.log(src, "direct message", msg);
+	log_append(src, msg, 'message-private');
 });
 
-sock.on('message', (id,msg) => {
-	console.log(id, "public message", msg);
-	log_append(id, msg, 'message');
+sock.on('message', (src,msg) => {
+	console.log(src, "public message", msg);
+	log_append(src, msg, 'message-public');
 });
 
 </script>
