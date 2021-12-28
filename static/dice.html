@@ -51,7 +51,7 @@ body  {
 <p>
 <div id="rolls"><div></div></div>
 
-<div id="log"></div>
+<div id="log" style='max-height:400px; overflow:scroll'></div>
 </body>
 <script>
 function randomBigInt(bytes=32)
@@ -181,6 +181,7 @@ function log_append(src, msg, msg_class="message")
 
 	e.appendChild(m);
 	log.appendChild(e);
+	log.scrollTop = log.scrollHeight;
 }
 
 
@@ -460,7 +461,7 @@ sock.on('reveal', (src,msg) => {
 	const short_result = (result >> 200n) % BigInt(choices);
 	const output = die[which][short_result];
 
-	log_append(sock.id, tag.substr(0,16) + " VALUE=" + output);
+	log_append(sock.id, tag.substr(0,16) + " die-" + which + " => " + short_result);
 	console.log("RESULT", tag, result, short_result, output);
 
 	// create a new output die for this roll
