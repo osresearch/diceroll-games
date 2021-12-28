@@ -46,10 +46,17 @@ body  {
 </style>
 </head>
 <body>
-<button onclick="roll_all()"
->Roll!</button>
-<p>
-<div id="rolls"><div></div></div>
+
+<table>
+<tr>
+<td><button onclick="roll_all()">Roll!</button></td>
+<td><form id="nick-form" action=""><input id="nick-input" autocomplete="off"/></form></td>
+</tr>
+<tr>
+<td><div id="rolls"><div></div></div></td>
+<td style="vertical-align:top"><div id="nicks"></div></td>
+</tr>
+</table>
 
 <div id="log" style='max-height:400px; overflow:scroll'></div>
 </body>
@@ -124,6 +131,24 @@ let room = document.location.hash;
 let peers = {};
 let rolls = {};
 
+
+// input box controls to broadcast the user's nick
+let nick = sock.id;
+let form = document.getElementById('nick-form');
+let input = document.getElementById('nick-input');
+
+form.addEventListener('submit', (e) => {
+	e.preventDefault();
+	nick = input.value;
+	peers[sock.id] = nick;
+	console.log("my nick is ", nick);
+	sock.emit('nick', nick);
+
+	// and update our selves
+	for(let d of document.querySelectorAll('.peer-' + sock.id))
+		d.innerText = nick;
+});
+
 // setup for four train and road dice
 let die = [];
 die[0] = [];
@@ -185,6 +210,25 @@ function log_append(src, msg, msg_class="message")
 }
 
 
+function peer_add(member)
+{
+	rolls = {}; // always cancel any runs in process
+
+	peers[member] = member;
+
+	log_append(server, '+ ' + member, 'message-public');
+
+	const d = document.getElementById("nicks");
+	if (!d)
+		return;
+
+	const n = document.createElement('div');
+	n.classList.add('peer-' + member);
+	n.innerText = member;
+	d.appendChild(n);
+}
+
+
 /*
  * These are the system level ones that the server sends to us
  */
@@ -208,14 +252,15 @@ sock.on('members', (room, members) => {
 
 	// track the peers, including ourselves
 	peers = {};
-	peers[sock.id] = 1;
+	peers[sock.id] = sock.id;
+
+	// reset the nick name list
+	const d = document.getElementById("nicks");
+	if (d)
+		d.textContent = '';
 
 	for(let member of members)
-	{
-		peers[member] = 1;
-		log_append(server, '+ ' + member, 'message-public');
-	}
-
+		peer_add(member);
 });
 
 // called when a new peer joins the room
@@ -224,8 +269,25 @@ sock.on('connected', (src) => {
 	console.log(src, "new room member");
 	log_append(server, '+ ' + src, 'message-public');
 
-	rolls = {};
-	peers[src] = 1;
+	peer_add(src);
+
+	// let the peer know our nickname
+	sock.emit('to', src, 'nick', nick);
+});
+
+// update the nick display for a peer
+sock.on('nick', (src,their_nick) => {
+	if (!(src in peers))
+	{
+		console.log(src, "unknown peer?");
+		return;
+	}
+
+	peers[src] = their_nick;
+	console.log(src, "now known as", their_nick);
+
+	for(let d of document.querySelectorAll('.peer-' + src))
+		d.innerText = their_nick;
 });
 
 // called when a peer leaves the room
@@ -238,6 +300,9 @@ sock.on('disconnected', (src) => {
 
 	if (src in peers)
 		delete peers[src];
+
+	for(let d of document.querySelectorAll('.peer-' + src))
+		d.style.opacity = 0.1;
 });
 
 
@@ -298,11 +363,17 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 // called when a peer has initiated a new roll
 function roll_row_create(src)
 {
-	const d = document.createElement('div');
 	const r = document.getElementById('rolls');
 	if (!r)
 		return;
 	console.log(src, "initiated new roll");
+	const originator = document.createElement('div');
+	originator.innerText = peers[src];
+	originator.classList.add("peer-" + src);
+
+	const d = document.createElement('div');
+	d.appendChild(originator);
+
 	const old = r.firstChild;
 	if (old)
 		old.style.opacity = 0.3;
