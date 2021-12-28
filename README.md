@@ -10,6 +10,8 @@ The server is not necessarily trustworthy and other parties can spoof
 messages, so it is important to build higher-level trust atop of the
 system.
 
+The demo is heavily inspired by https://socket.io/get-started/chat
+
 
 ## Setup
 
