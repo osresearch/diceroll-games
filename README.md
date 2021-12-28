@@ -27,7 +27,7 @@ Then:
 npm start
 ```
 
-And go to http://localhost:4423/ to load the demo chat page
+And go to http://localhost:4424/ to load the demo chat page
 
 
 ## Writing clients

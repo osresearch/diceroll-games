@@ -4,7 +4,7 @@
  * Multiple clients connect to a room. The server just echos everything
  * they say to every client in the room. Direct messages are possible.
  */
-const port = process.env.PORT || 4423;
+const port = process.env.PORT || 4424;
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
