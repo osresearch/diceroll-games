@@ -46,43 +46,14 @@ body  {
 </style>
 </head>
 <body>
+<ul>
+<li><button onclick="roll_commit(sock,0)">Roll!</button><span id="die-0"></span>
+<li><button onclick="roll_commit(sock,1)">Roll!</button><span id="die-1"></span>
+</ul>
+
 <div id="log"></div>
 </body>
 <script>
-const server = document.location.origin;
-const sock = io.connect(server);
-let room = 'dicegame';
-let peers = {};
-let rolls = {};
-
-let die = [
-	[ "1", "2", "3", "4", "5", "6" ],
-	[ "1", "2", "3", "4", "5", "6", "7", "8" ],
-];
-
-function log_append(src, msg, msg_class="message")
-{
-	const log = document.getElementById("log");
-	const e = document.createElement('p');
-	const s = document.createElement('span');
-	s.classList.add("sender");
-	if (src == server)
-		s.classList.add("sender-server");
-	if (src == sock.id)
-		s.classList.add("sender-self");
-	s.innerText = src;
-	e.appendChild(s);
-
-	e.appendChild(document.createTextNode(" "));
-
-	const m = document.createElement('span');
-	m.classList.add(msg_class);
-	m.innerText = msg;
-
-	e.appendChild(m);
-	log.appendChild(e);
-}
-
 function randomBigInt(bytes=32)
 {
         let a = new Uint8Array(bytes);
@@ -129,6 +100,58 @@ function sha256BigInt(x)
 {
 	return arrayToBigInt(sha256.sha256(arrayFromBigInt(x, 32)));
 }
+</script>
+
+<script>
+const server = document.location.origin;
+const sock = io.connect(server);
+if (!document.location.hash)
+{
+	let rand_room = randomBigInt(16).toString(36);
+
+	console.log("generating random room", rand_room);
+	document.location.hash = ''
+		+ rand_room.substr(0,4)
+		+ '-'
+		+ rand_room.substr(4,4)
+		+ '-'
+		+ rand_room.substr(8,4)
+		+ '-'
+		+ rand_room.substr(12,4);
+}
+
+let room = document.location.hash;
+let peers = {};
+let rolls = {};
+
+let die = [
+	[ "1", "2", "3", "4", "5", "6" ],
+	[ "1", "2", "3", "4", "5", "6", "7", "8" ],
+];
+
+function log_append(src, msg, msg_class="message")
+{
+	const log = document.getElementById("log");
+	const e = document.createElement('p');
+	const s = document.createElement('span');
+	s.classList.add("sender");
+	if (src == server)
+		s.classList.add("sender-server");
+	if (src == sock.id)
+		s.classList.add("sender-self");
+	s.innerText = src;
+	e.appendChild(s);
+
+	e.appendChild(document.createTextNode(" "));
+
+	const m = document.createElement('span');
+	m.classList.add(msg_class);
+	m.innerText = msg;
+
+	e.appendChild(m);
+	log.appendChild(e);
+}
+
 
 /*
  * These are the system level ones that the server sends to us
@@ -210,7 +233,7 @@ sock.on('disconnected', (src) => {
  */
 
 // start a dice roll or respond to one
-function roll_commit(sock,tag=randomBigInt(), which=0)
+function roll_commit(sock, which=0, tag=randomBigInt())
 {
 	const tag_str = tag.toString(16);
 	const short_tag = tag_str.substr(0,16);
@@ -277,7 +300,7 @@ sock.on('commit', (src,msg) => {
 
 		// and add our roll and commitment to it,
 		// plus send the reply to the room
-		roll_commit(sock, tag, which);
+		roll_commit(sock, which, tag);
 	}
 
 	const roll = rolls[tag];
@@ -379,10 +402,15 @@ sock.on('reveal', (src,msg) => {
 	}
 
 	const choices = die[which].length;
-	console.log(tag, which, result, choices);
-	const output = result % BigInt(choices);
+	const short_result = result % BigInt(choices);
+	const output = die[which][short_result];
 
-	log_append(sock.id, tag.substr(0,16) + " VALUE=" + die[which][output]);
+	log_append(sock.id, tag.substr(0,16) + " VALUE=" + output);
+	console.log("RESULT", tag, result, short_result, output);
+
+	const d = document.getElementById("die-" + which);
+	if (d)
+		d.innerHTML = output;
 });
 
 </script>
