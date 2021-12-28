@@ -1,5 +1,4 @@
-socket.io chat server
-===
+# multiparty chat server
 
 This is the basis for multiparty communication with a simple room
 interface.  The clients can join a room (identified by any string)
@@ -10,3 +9,25 @@ can track all of the other chatters.
 The server is not necessarily trustworthy and other parties can spoof
 messages, so it is important to build higher-level trust atop of the
 system.
+
+
+## Setup
+
+Once:
+
+```
+npm install
+```
+
+Then:
+
+```
+npm start
+```
+
+And go to http://localhost:4423/ to load the demo chat page
+
+
+## Writing clients
+
+
