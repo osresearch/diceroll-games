@@ -141,12 +141,18 @@
 	[
 		"images/die-p1.png",
 		"images/die-p2.png",
-		"images/die-p3.png"
+		"images/die-p3.png",
+		"images/die-l1.png",
+		"images/die-l2.png",
+		"images/die-l3.png"
 	],
 	[
 		"images/die-p1.png",
 		"images/die-p2.png",
-		"images/die-p3.png"
+		"images/die-p3.png",
+		"images/die-l1.png",
+		"images/die-l2.png",
+		"images/die-l3.png"
 	]
 ]
 }
