@@ -87,13 +87,14 @@ io.on('connection', (socket) => {
 
 	// otherwise echo any normal message to everyone in the room
 	// prefixing it with the socket id of the sender
+	// note that we do not send messages to the sender
 	socket.onAny((topic,msg) => {
 		// don't forward any reserved topics
 		if (topic in reserved_topics)
 			return;
 
 		try {
-			console.log("GENERIC", socket.id + ":" + socket.room + ":" + topic, msg);
+			console.log(socket.id + ":" + socket.room + ":" + topic, msg);
 			socket.broadcast.to(socket.room).emit(topic, socket.id, msg);
 		} catch (err) {
 			console.log(socket.id, "error", err);
