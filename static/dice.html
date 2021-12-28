@@ -43,17 +43,23 @@ body  {
 .sender-server { color: red; }
 .sender-self { color: blue; }
 
+.timestamp { color: #aaa; }
+.nick-self { color: blue; }
+.nick { color: #080; }
+
+#roll-button { font-size: 30px; }
+
 </style>
 </head>
 <body>
 
 <table>
 <tr>
-<td><button onclick="roll_all()">Roll!</button></td>
+<td><button onclick="roll_all()" id="roll-button">Roll the dice!</button></td>
 <td><form id="nick-form" action=""><input id="nick-input" autocomplete="off"/></form></td>
 </tr>
 <tr>
-<td><div id="rolls"><div></div></div></td>
+<td width=512px><div id="rolls"><div></div></div></td>
 <td style="vertical-align:top"><div id="nicks"></div></td>
 </tr>
 </table>
@@ -210,11 +216,11 @@ function log_append(src, msg, msg_class="message")
 }
 
 
-function peer_add(member)
+function peer_add(member,nick=member)
 {
 	rolls = {}; // always cancel any runs in process
 
-	peers[member] = member;
+	peers[member] = nick;
 
 	log_append(server, '+ ' + member, 'message-public');
 
@@ -224,7 +230,8 @@ function peer_add(member)
 
 	const n = document.createElement('div');
 	n.classList.add('peer-' + member);
-	n.innerText = member;
+	n.classList.add(member == sock.id ? 'nick-self' : 'nick');
+	n.innerText = nick;
 	d.appendChild(n);
 }
 
@@ -252,12 +259,13 @@ sock.on('members', (room, members) => {
 
 	// track the peers, including ourselves
 	peers = {};
-	peers[sock.id] = sock.id;
 
 	// reset the nick name list
 	const d = document.getElementById("nicks");
 	if (d)
 		d.textContent = '';
+
+	peer_add(sock.id, nick);
 
 	for(let member of members)
 		peer_add(member);
@@ -367,12 +375,21 @@ function roll_row_create(src)
 	if (!r)
 		return;
 	console.log(src, "initiated new roll");
-	const originator = document.createElement('div');
-	originator.innerText = peers[src];
-	originator.classList.add("peer-" + src);
+	const src_div = document.createElement('span');
+	src_div.innerText = peers[src];
+	src_div.classList.add("peer-" + src);
+	src_div.classList.add(src == sock.id ? 'nick-self' : 'nick');
+
+	const time_div = document.createElement('span');
+	time_div.innerText = " " + new Date().toISOString();
+	time_div.classList.add("timestamp");
+
+	const orow = document.createElement('div');
+	orow.appendChild(src_div);
+	orow.appendChild(time_div);
 
 	const d = document.createElement('div');
-	d.appendChild(originator);
+	d.appendChild(orow);
 
 	const old = r.firstChild;
 	if (old)
