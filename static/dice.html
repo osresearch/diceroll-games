@@ -474,7 +474,8 @@ sock.on('reveal', (src,msg) => {
 	img.width = 128;
 	img.height = 128;
 	img.src = output;
-	img.onclick = () => { img.style.opacity = 0.25 };
+	img.style.opacity = 1.0;
+	img.onclick = () => { img.style.opacity = img.style.opacity > 0.5 ? 0.25 : 1.0 };
 	r.appendChild(img);
 });
 
