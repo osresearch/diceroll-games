@@ -258,6 +258,9 @@ sock.on('connect', () => {
 	console.log(server, "RECONNECTED");
 	log_append(server, 'Reconnected', 'message-server');
 	sock.emit('room', room);
+
+	// and also let people know our nick name
+	sock.emit('nick', nick);
 });
 
 // server sends this message when a new room is joined
