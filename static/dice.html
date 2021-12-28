@@ -29,6 +29,7 @@
 	integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj"
 	crossorigin="anonymous"
 ></script>
+<script src="sha256.js" ></script>
 
 <style>
 body  {
@@ -54,6 +55,11 @@ let room = 'dicegame';
 let peers = {};
 let rolls = {};
 
+let die = [
+	[ "1", "2", "3", "4", "5", "6" ],
+	[ "1", "2", "3", "4", "5", "6", "7", "8" ],
+];
+
 function log_append(src, msg, msg_class="message")
 {
 	const log = document.getElementById("log");
@@ -77,6 +83,53 @@ function log_append(src, msg, msg_class="message")
 	log.appendChild(e);
 }
 
+function randomBigInt(bytes=32)
+{
+        let a = new Uint8Array(bytes);
+        window.crypto.getRandomValues(a);
+	return arrayToBigInt(a);
+}
+
+/*
+ * Convert a byte array in MSB first order into a BigInt 
+ */
+function arrayToBigInt(a)
+{
+	let x = 0n;
+	for(let y of a)
+		x = (x << 8n) | BigInt(y);
+        return x;
+}
+
+/*
+ * Convert a BigInt to a byte array of length l in MSB first order.
+ */
+function arrayFromBigInt(m,l=32)
+{
+	let r = [];
+
+	m = BigInt(m); // just in case
+
+	for(let i = 1 ; i <= l ; i++)
+	{
+		r[l - i] = Number(m & 0xFFn);
+		m >>= 8n;
+	}
+
+	if (m != 0n)
+		console.log("m too big for l", m, l, r);
+
+	return r;
+}
+
+/*
+ * Hash a bigint, returning a bigint
+ */
+function sha256BigInt(x)
+{
+	return arrayToBigInt(sha256.sha256(arrayFromBigInt(x, 32)));
+}
+
 /*
  * These are the system level ones that the server sends to us
  */
@@ -87,7 +140,7 @@ sock.on('connect', () => {
 	rolls = {};
 
 	// join the room in the URL
-	console.log("RECONNECTED");
+	console.log(server, "RECONNECTED");
 	log_append(server, 'Reconnected', 'message-server');
 	sock.emit('room', room);
 });
@@ -157,25 +210,33 @@ sock.on('disconnected', (src) => {
  */
 
 // start a dice roll or respond to one
-function roll_commit(sock,tag=1234, which=0)
+function roll_commit(sock,tag=randomBigInt(), which=0)
 {
-	if (!(tag in rolls))
-		rolls[tag] = {}
+	const tag_str = tag.toString(16);
+	const short_tag = tag_str.substr(0,16);
 
-	const my_value = 1234;
-	const my_hash = 9999;
+	if (!(tag_str in rolls))
+	{
+		log_append(sock.id, short_tag + " NEW ROLL");
+		rolls[tag_str] = {}
+	}
+
+	const my_value = randomBigInt(32);
+	const my_hash = sha256BigInt(my_value);
 	const my_roll = {
 		hash: my_hash,
 		value: my_value,
 		which: which,
 	};
 
-	rolls[tag][sock.id] = my_roll;
+	rolls[tag_str][sock.id] = my_roll;
+	const hash_str = my_hash.toString(16);
+	log_append(sock.id, short_tag + " hashed " + hash_str, 'message-public');
 
 	sock.emit('commit', {
-		"tag": tag,
+		"tag": tag_str,
 		"which": which,
-		"hash": my_hash,
+		"hash": hash_str,
 	});
 }
 
@@ -183,15 +244,35 @@ function roll_commit(sock,tag=1234, which=0)
 // is responding to a dice roll by another peer.
 sock.on('commit', (src,msg) => {
 	console.log("commit", src, msg);
-	const tag = msg.tag;
+
+	if (!(src in peers))
+	{
+		log_append(src, "not in peer group?" + msg, 'message-server');
+		return;
+	}
+
+	if (!("tag" in msg && "which" in msg && "hash" in msg))
+	{
+		log_append(src, "bad message" + msg, 'message-server');
+		return;
+	}
+
+	const tag = msg.tag.toString();
+	const short_tag = tag.substr(0,16);
 	const which = msg.which;
 	const hash = msg.hash;
+
+	if (!(which in die))
+	{
+		log_append(src, short_tag + " no such die " + which, 'message-server');
+		return;
+	}
 
 	if (!(tag in rolls))
 	{
 		// first time we've seen this tag, so let's
 		// create the bookkeeping for it
-		log_append(src, "new roll " + tag);
+		log_append(src, short_tag + " NEW ROLL");
 		rolls[tag] = {}
 
 		// and add our roll and commitment to it,
@@ -201,30 +282,26 @@ sock.on('commit', (src,msg) => {
 
 	const roll = rolls[tag];
 
-	if (!(src in peers))
-	{
-		log_append(src, "not in peer group?" + msg, 'message-server');
-		return;
-	}
-
 	// if this src has already done this roll, then
 	// they are cheating (or the server has duped us)
 	if (src in roll)
 	{
 		console.log("duplicate?", src, msg, roll);
-		log_append(src, "already rolled?" + msg, 'message-server');
+		log_append(src, short_tag + " already rolled?", 'message-server');
 		return;
 	}
 
-	if (which != roll[sock.id].which)
+	// does this roll match the die that we are expecting?
+	const expected_which = roll[sock.id].which;
+	if (which != expected_which)
 	{
-		log_append(src, "wrong dice?" + msg, 'message-server');
+		log_append(src, short_tag + " wrong dice? expected " + expected_which + " got " + which, 'message-server');
 		return;
 	}
 
-	roll[src] = { hashed: hash };
+	roll[src] = { hash: BigInt("0x" + hash) };
 
-	log_append(src, tag + " hashed " + msg.hashed , 'message-public');
+	log_append(src, short_tag + " hashed " + hash , 'message-public');
 
 	// if any peers have not yet commited to this tag, then we're done
 	for (let peer in peers)
@@ -232,8 +309,9 @@ sock.on('commit', (src,msg) => {
 			return;
 
 	// all peers have committed! time to reveal
-	const my_value = roll[sock.id].value;
-	log_append(sock.id, tag + " reveal " + my_value);
+	const my_value = roll[sock.id].value.toString(16);
+	log_append(sock.id, short_tag + " reveal " + my_value);
+
 	sock.emit('reveal', {
 		"tag": tag,
 		"which": which,
@@ -255,44 +333,56 @@ sock.on('reveal', (src,msg) => {
 
 	if (!(tag in rolls))
 	{
-		log_append(src, tag + " not in rolls?" + msg, 'message-server');
+		log_append(src, tag.substr(0,16) + " not in rolls?" + msg, 'message-server');
 		return;
 	}
 
 	const roll = rolls[tag];
 	if (!(src in roll))
 	{
-		log_append(src, tag + " did not commit?" + msg, 'message-server');
+		log_append(src, tag.substr(0,16) + " did not commit?" + msg, 'message-server');
 		return;
 	}
 
 	const their_roll = roll[src];
 
-	// todo: check hash
-
 	if ("value" in their_roll)
 	{
-		log_append(src, tag + " double reveal?" + msg, 'message-server');
+		log_append(src, tag.substr(0,16) + " double reveal?" + msg, 'message-server');
 		return;
 	}
 
-	their_roll.value = value;
+	const their_value = BigInt("0x" + value);
+	const expected_hash = sha256BigInt(their_value);
 
-	log_append(src, tag + " reveal " + value);
+	if (expected_hash != their_roll.hash)
+	{
+		console.log(src, "BAD HASH. Expected != Recieved", expected_hash.toString(16), their_roll.hash.toString(16));
+		log_append(src, tag.substr(0,16) + " HASH CHEAT", 'message-server');
+		return;
+	}
+
+	// looks good! accept it
+	their_roll.value = their_value;
+	log_append(src, tag.substr(0,16) + " reveal " + value);
 
 	// try to compute the result of this roll
 	// if any peers have not yet revealed this tag, then we're done
-	let result = tag;
+	let result = BigInt("0x" + tag);
 	for (let peer in peers)
 	{
 		if (!(peer in roll))
 			return;
 		if (!("value" in roll[peer]))
 			return;
-		result += roll[peer].value;
+		result += roll[peer].value; // already bigint
 	}
 
-	log_append(sock.id, tag + " VALUE=" + result);
+	const choices = die[which].length;
+	console.log(tag, which, result, choices);
+	const output = result % BigInt(choices);
+
+	log_append(sock.id, tag.substr(0,16) + " VALUE=" + die[which][output]);
 });
 
 </script>
