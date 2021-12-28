@@ -33,12 +33,12 @@
 
 <style>
 body  {
-	background: black;
-	color: #00ff00;
+	background: #fff;
+	color: #080;
 	font-family: mono;
 }
 .message-private { color: #ccc; }
-.message-public { color: #0f0; }
+.message-public { color: #080; }
 .message-server { color: red; }
 .sender-server { color: red; }
 .sender-self { color: blue; }
@@ -46,10 +46,10 @@ body  {
 </style>
 </head>
 <body>
-<ul>
-<li><button onclick="roll_commit(sock,0)">Roll!</button><span id="die-0"></span>
-<li><button onclick="roll_commit(sock,1)">Roll!</button><span id="die-1"></span>
-</ul>
+<button onclick="roll_all()"
+>Roll!</button>
+<p>
+<div id="rolls"><div></div></div>
 
 <div id="log"></div>
 </body>
@@ -124,10 +124,41 @@ let room = document.location.hash;
 let peers = {};
 let rolls = {};
 
-let die = [
-	[ "1", "2", "3", "4", "5", "6" ],
-	[ "1", "2", "3", "4", "5", "6", "7", "8" ],
-];
+// setup for four train and road dice
+let die = [];
+die[0] = [];
+die[1] = [];
+die[2] = [];
+die[3] = [];
+
+for(let x = 0 ; x < 3 ; x++)
+{
+	die[x][0] = "images/die-rs.png";
+	die[x][1] = "images/die-rt.png";
+	die[x][2] = "images/die-rc.png";
+	die[x][3] = "images/die-ts.png";
+	die[x][4] = "images/die-tt.png";
+	die[x][5] = "images/die-tc.png";
+}
+
+
+die[3][0] = "images/die-xs.png";
+die[3][1] = "images/die-xs.png";
+die[3][2] = "images/die-xx.png";
+die[3][3] = "images/die-xx.png";
+die[3][4] = "images/die-xc.png";
+die[3][5] = "images/die-xc.png";
+
+/*
+// numeric dice
+for(let x = 1 ; x <= 6 ; x++)
+{
+	die[0][x-1] = "die-" + x + ".png";
+	die[1][x-1] = "die-" + x + ".png";
+	die[2][x-1] = "die-" + x + ".png";
+	die[3][x-1] = "die-" + x + ".png";
+}
+*/
 
 function log_append(src, msg, msg_class="message")
 {
@@ -240,7 +271,7 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 
 	if (!(tag_str in rolls))
 	{
-		log_append(sock.id, short_tag + " NEW ROLL");
+		log_append(sock.id, short_tag + " NEW ROLL " + which);
 		rolls[tag_str] = {}
 	}
 
@@ -262,6 +293,30 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 		"hash": hash_str,
 	});
 }
+
+// called when a peer has initiated a new roll
+function roll_row_create(src)
+{
+	const d = document.createElement('div');
+	const r = document.getElementById('rolls');
+	if (!r)
+		return;
+	console.log(src, "initiated new roll");
+	const old = r.firstChild;
+	if (old)
+		old.style.opacity = 0.3;
+	r.insertBefore(d, r.firstChild);
+}
+
+function roll_all()
+{
+	roll_row_create(sock.id);
+	sock.emit('roll');
+	for(let i = 0 ; i < die.length ; i++)
+		roll_commit(sock,i);
+}
+
+sock.on('roll', roll_row_create);
 
 // called when another peer has initiated a dice roll or
 // is responding to a dice roll by another peer.
@@ -391,7 +446,7 @@ sock.on('reveal', (src,msg) => {
 
 	// try to compute the result of this roll
 	// if any peers have not yet revealed this tag, then we're done
-	let result = BigInt("0x" + tag);
+	let result = BigInt(which); //BigInt("0x" + tag);
 	for (let peer in peers)
 	{
 		if (!(peer in roll))
@@ -402,15 +457,24 @@ sock.on('reveal', (src,msg) => {
 	}
 
 	const choices = die[which].length;
-	const short_result = result % BigInt(choices);
+	const short_result = (result >> 200n) % BigInt(choices);
 	const output = die[which][short_result];
 
 	log_append(sock.id, tag.substr(0,16) + " VALUE=" + output);
 	console.log("RESULT", tag, result, short_result, output);
 
-	const d = document.getElementById("die-" + which);
-	if (d)
-		d.innerHTML = output;
+	// create a new output die for this roll
+	const d = document.getElementById("rolls");
+	if (!d)
+		return;
+
+	const r = d.firstChild;
+	const img = document.createElement('img');
+	img.width = 128;
+	img.height = 128;
+	img.src = output;
+	img.onclick = () => { img.style.opacity = 0.25 };
+	r.appendChild(img);
 });
 
 </script>
