@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dice Rolling Demo</title>
+
+<!-- HTML Meta Tags -->
+<meta name="description" content="Multi-party cryptographic dice demo">
+
+<!-- Facebook Meta Tags -->
+<meta property="og:url" content="https://echo.v.st/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Multi-party chat demo">
+<meta property="og:description" content="Websocket based chat room demo">
+<meta property="og:image" content="https://echo.v.st/header.jpg">
+
+<!-- Twitter Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta property="twitter:domain" content="echo.v.st">
+<meta property="twitter:url" content="https://echo.v.st/">
+<meta name="twitter:title" content="Multi-party chat demo">
+<meta name="twitter:description" content="Websocket based chat room demo">
+<meta name="twitter:image" content="https://echo.v.st/header.jpg">
+
+<!-- This is heavily inspired by https://socket.io/get-started/chat -->
+
+
+<script
+	src="https://cdn.socket.io/4.4.0/socket.io.min.js"
+	integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj"
+	crossorigin="anonymous"
+></script>
+
+<style>
+body  {
+	background: black;
+	color: #00ff00;
+	font-family: mono;
+}
+.message-private { color: #ccc; }
+.message-public { color: #0f0; }
+.message-server { color: red; }
+.sender-server { color: red; }
+.sender-self { color: blue; }
+
+</style>
+</head>
+<body>
+<div id="log"></div>
+</body>
+<script>
+const server = document.location.origin;
+const sock = io.connect(server);
+let room = 'dicegame';
+let peers = {};
+let rolls = {};
+
+function log_append(src, msg, msg_class="message")
+{
+	const log = document.getElementById("log");
+	const e = document.createElement('p');
+	const s = document.createElement('span');
+	s.classList.add("sender");
+	if (src == server)
+		s.classList.add("sender-server");
+	if (src == sock.id)
+		s.classList.add("sender-self");
+	s.innerText = src;
+	e.appendChild(s);
+
+	e.appendChild(document.createTextNode(" "));
+
+	const m = document.createElement('span');
+	m.classList.add(msg_class);
+	m.innerText = msg;
+
+	e.appendChild(m);
+	log.appendChild(e);
+}
+
+/*
+ * These are the system level ones that the server sends to us
+ */
+// called when a connection to the server is established
+sock.on('connect', () => {
+	// reset our peer list, cancel any die rolls in process
+	peers = {};
+	rolls = {};
+
+	// join the room in the URL
+	console.log("RECONNECTED");
+	log_append(server, 'Reconnected', 'message-server');
+	sock.emit('room', room);
+});
+
+// server sends this message when a new room is joined
+// to inform us of the other members
+sock.on('members', (room, members) => {
+	console.log(room + " members", members);
+	log_append(server, 'joined ' + room + ' ' + members.length + ' members', 'message-server');
+
+	// track the peers, including ourselves
+	peers = {};
+	peers[sock.id] = 1;
+
+	for(let member of members)
+	{
+		peers[member] = 1;
+		log_append(server, '+ ' + member, 'message-public');
+	}
+
+});
+
+// called when a new peer joins the room
+// which resets any rolls in process
+sock.on('connected', (src) => {
+	console.log(src, "new room member");
+	log_append(server, '+ ' + src, 'message-public');
+
+	rolls = {};
+	peers[src] = 1;
+});
+
+// called when a peer leaves the room
+// which resets any rolls in process
+sock.on('disconnected', (src) => {
+	console.log(src, "room member left");
+	log_append(server, '- ' + src, 'message-public');
+
+	rolls = {};
+
+	if (src in peers)
+		delete peers[src];
+});
+
+
+/*
+ * These are the ones that we define for our dice client
+ *
+ * A peer can propose a set of dice (N sets of K images)
+ *
+ * A peer can start a roll for a dice by saying which die and a seed,
+ * all peers will generate a random value and publish the hash of
+ * the value. Once they have received hashes from all the other peers
+ * in the room, they will publish the value.
+ *
+ * If this is a private roll, the initial peer can add all of the
+ * revealed values, plus their own secret one and the seed, and
+ * take it modulo the K for that die to learn the roll.
+ *
+ * When they are ready to reveal, they publish their value and the
+ * everyone can compute the same result.
+ *
+ * Cheaters can't publish fake values, since they have already committed
+ * the value.  They can't collude since they can't control the honest
+ * player's value.
+ * 
+ */
+
+// start a dice roll or respond to one
+function roll_commit(sock,tag=1234, which=0)
+{
+	if (!(tag in rolls))
+		rolls[tag] = {}
+
+	const my_value = 1234;
+	const my_hash = 9999;
+	const my_roll = {
+		hash: my_hash,
+		value: my_value,
+		which: which,
+	};
+
+	rolls[tag][sock.id] = my_roll;
+
+	sock.emit('commit', {
+		"tag": tag,
+		"which": which,
+		"hash": my_hash,
+	});
+}
+
+// called when another peer has initiated a dice roll or
+// is responding to a dice roll by another peer.
+sock.on('commit', (src,msg) => {
+	console.log("commit", src, msg);
+	const tag = msg.tag;
+	const which = msg.which;
+	const hash = msg.hash;
+
+	if (!(tag in rolls))
+	{
+		// first time we've seen this tag, so let's
+		// create the bookkeeping for it
+		log_append(src, "new roll " + tag);
+		rolls[tag] = {}
+
+		// and add our roll and commitment to it,
+		// plus send the reply to the room
+		roll_commit(sock, tag, which);
+	}
+
+	const roll = rolls[tag];
+
+	if (!(src in peers))
+	{
+		log_append(src, "not in peer group?" + msg, 'message-server');
+		return;
+	}
+
+	// if this src has already done this roll, then
+	// they are cheating (or the server has duped us)
+	if (src in roll)
+	{
+		console.log("duplicate?", src, msg, roll);
+		log_append(src, "already rolled?" + msg, 'message-server');
+		return;
+	}
+
+	if (which != roll[sock.id].which)
+	{
+		log_append(src, "wrong dice?" + msg, 'message-server');
+		return;
+	}
+
+	roll[src] = { hashed: hash };
+
+	log_append(src, tag + " hashed " + msg.hashed , 'message-public');
+
+	// if any peers have not yet commited to this tag, then we're done
+	for (let peer in peers)
+		if (!(peer in roll))
+			return;
+
+	// all peers have committed! time to reveal
+	const my_value = roll[sock.id].value;
+	log_append(sock.id, tag + " reveal " + my_value);
+	sock.emit('reveal', {
+		"tag": tag,
+		"which": which,
+		"value": my_value,
+	});
+});
+
+sock.on('reveal', (src,msg) => {
+	console.log("reveal", src, msg);
+	const tag = msg.tag;
+	const which = msg.which;
+	const value = msg.value;
+
+	if (!(src in peers))
+	{
+		log_append(src, "not in peer group?" + msg, 'message-server');
+		return;
+	}
+
+	if (!(tag in rolls))
+	{
+		log_append(src, tag + " not in rolls?" + msg, 'message-server');
+		return;
+	}
+
+	const roll = rolls[tag];
+	if (!(src in roll))
+	{
+		log_append(src, tag + " did not commit?" + msg, 'message-server');
+		return;
+	}
+
+	const their_roll = roll[src];
+
+	// todo: check hash
+
+	if ("value" in their_roll)
+	{
+		log_append(src, tag + " double reveal?" + msg, 'message-server');
+		return;
+	}
+
+	their_roll.value = value;
+
+	log_append(src, tag + " reveal " + value);
+
+	// try to compute the result of this roll
+	// if any peers have not yet revealed this tag, then we're done
+	let result = tag;
+	for (let peer in peers)
+	{
+		if (!(peer in roll))
+			return;
+		if (!("value" in roll[peer]))
+			return;
+		result += roll[peer].value;
+	}
+
+	log_append(sock.id, tag + " VALUE=" + result);
+});
+
+</script>
+</html>
