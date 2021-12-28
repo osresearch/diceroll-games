@@ -59,7 +59,10 @@ body  {
 
 <table>
 <tr>
-<td><button onclick="roll_all()" id="roll-button">Roll the dice!</button></td>
+<td>
+	<button onclick="roll_all()" id="roll-button">Roll the dice!</button>
+	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
+</td>
 <td><form id="nick-form" action=""><input id="nick-input" autocomplete="off"/></form></td>
 </tr>
 <tr>
@@ -159,51 +162,40 @@ form.addEventListener('submit', (e) => {
 		d.innerText = nick;
 });
 
-// setup for four train and road dice
-let die = [];
-
-for(let x = 0 ; x < 3 ; x++)
+// load the dice configurations from the json file
+let dice_set = null;
+let dice_sets = {};
+function dice_sets_populate(new_dice_sets)
 {
-	die.push([
-		"images/die-rs.png",
-		"images/die-rt.png",
-		"images/die-rc.png",
-		"images/die-ts.png",
-		"images/die-tt.png",
-		"images/die-tc.png",
-	]);
+	dice_sets = new_dice_sets;
+	const sel = document.getElementById("dice-sets");
+	if (!sel)
+		return;
+
+	// delete the existing items
+	sel.innerText = '';
+
+	for(let name in dice_sets)
+	{
+		const opt = document.createElement("option");
+		opt.value = name;
+		opt.text = name;
+		sel.appendChild(opt);
+
+		// default to the first one
+		if (!dice_set)
+			dice_set = dice_sets[name];
+	}
 }
 
-die.push([
-	"images/die-xs.png",
-	"images/die-xx.png",
-	"images/die-xc.png",
-]);
-
-// lakes and piers extra die
-die.push([
-	"images/die-p1.png",
-	"images/die-p2.png",
-	"images/die-p3.png",
-]);
-
-die.push([
-	"images/die-l1.png",
-	"images/die-l2.png",
-	"images/die-l3.png",
-]);
-
-
-/*
-// numeric dice
-for(let x = 1 ; x <= 6 ; x++)
+function dice_set_choose(sel)
 {
-	die[0][x-1] = "die-" + x + ".png";
-	die[1][x-1] = "die-" + x + ".png";
-	die[2][x-1] = "die-" + x + ".png";
-	die[3][x-1] = "die-" + x + ".png";
+	console.log("choose", sel);
+	dice_set = dice_sets[sel.value]; // the chosen dice
 }
-*/
+
+fetch("dice.json").then(r => r.json()).then(data => dice_sets_populate(data));
+
 
 function log_append(src, msg, msg_class="message")
 {
@@ -423,9 +415,9 @@ function roll_finalize(sock, which, tag)
 		result += roll[peer].value; // already bigint
 	}
 
-	const choices = die[which].length;
+	const choices = dice_set[which].length;
 	const short_result = (result >> 200n) % BigInt(choices);
-	const output = die[which][short_result];
+	const output = dice_set[which][short_result];
 
 	log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
 	console.log("RESULT", tag, result, short_result, output);
@@ -440,6 +432,7 @@ function roll_finalize(sock, which, tag)
 	img.width = 128;
 	img.height = 128;
 	img.src = output;
+	img.alt = output;
 	img.style.opacity = 1.0;
 	img.onclick = () => { img.style.opacity = img.style.opacity > 0.5 ? 0.25 : 1.0 };
 	r.appendChild(img);
@@ -450,7 +443,7 @@ function roll_finalize(sock, which, tag)
 // from the roller
 function roll_row_create(src, new_die)
 {
-	die = new_die;
+	dice_set = new_die;
 	const r = document.getElementById('rolls');
 	if (!r)
 		return;
@@ -480,10 +473,16 @@ function roll_row_create(src, new_die)
 
 function roll_all()
 {
-	roll_row_create(sock.id, die);
-	sock.emit('roll', die);
+	if (!dice_set)
+	{
+		alert("no dice sets loaded?");
+		return;
+	}
 
-	for(let i = 0 ; i < die.length ; i++)
+	roll_row_create(sock.id, dice_set);
+	sock.emit('roll', dice_set);
+
+	for(let i = 0 ; i < dice_set.length ; i++)
 		roll_commit(sock,i);
 }
 
@@ -511,7 +510,7 @@ sock.on('commit', (src,msg) => {
 	const which = msg.which;
 	const hash = msg.hash;
 
-	if (!(which in die))
+	if (!(which in dice_set))
 	{
 		log_append(src, short_tag + " no such die " + which, 'message-server');
 		return;
