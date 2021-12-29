@@ -3,6 +3,7 @@
  */
 const server = document.location.origin;
 const sock = io.connect(server);
+
 if (!document.location.hash)
 {
 	let rand_room = randomBigInt(16).toString(36);
@@ -25,20 +26,47 @@ let rolls = {};
 
 // input box controls to broadcast the user's nick
 let nick = "UNKNOWN";
-let form = document.getElementById('nick-form');
-let input = document.getElementById('nick-input');
+// called when the user clicks on their own nick
+function nick_clicked(n)
+{
+	// hide this one, replace it w
+	console.log("clicked");
 
-form.addEventListener('submit', (e) => {
-	e.preventDefault();
-	nick = input.value;
-	peers[sock.id] = nick;
-	console.log("my nick is ", nick);
-	sock.emit('nick', nick);
+	let form = document.createElement('form');
+	let input = document.createElement('input');
 
-	// and update our selves
-	for(let d of document.querySelectorAll('.peer-' + sock.id))
-		d.innerText = nick;
-});
+	let restore_nick_display = () => {
+		form.parentNode.removeChild(form);
+		n.style.display = 'block';
+	};
+
+	form.addEventListener('submit', (e) => {
+		e.preventDefault();
+		nick = input.value;
+		peers[sock.id] = nick;
+		console.log("my nick is ", nick);
+		sock.emit('nick', nick);
+
+		// and update our selves
+		for(let d of document.querySelectorAll('.peer-' + sock.id))
+			d.innerText = nick;
+
+		restore_nick_display();
+	});
+
+	form.appendChild(input);
+	n.parentNode.insertBefore(form, n);
+	n.style.display = 'none';
+
+	// select all and move input to the box
+	input.value = nick;
+	input.focus();
+	input.select();
+	input.autocomplete = 'off';
+	input.id = 'nick-input';
+	input.size = nick.length + 5;
+	input.onblur = restore_nick_display;
+}
 
 // load the dice configurations from the json file
 let dice_set = null;
@@ -128,7 +156,16 @@ function peer_add(member,nick=member)
 
 	const n = document.createElement('div');
 	n.classList.add('peer-' + member);
-	n.classList.add(member == sock.id ? 'nick-self' : 'nick');
+	n.classList.add('nick');
+
+	if (member == sock.id)
+	{
+		// this is our own entry
+		n.classList.add('nick-self');
+		n.onclick = () => nick_clicked(n);
+		n.title = "Click to set your nickname";
+	}
+
 	n.innerText = nick;
 	d.appendChild(n);
 }

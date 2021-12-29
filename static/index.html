@@ -45,8 +45,23 @@ body  {
 .sender-self { color: blue; }
 
 .timestamp { color: #aaa; }
-.nick-self { color: blue; }
 .nick { color: #080; }
+.nick-self { color: blue; }
+
+#nick-input {
+	border-left: 0px;
+	border-right: 0px;
+	border-top: 0px;
+	border-bottom: 0px;
+	padding: 0 0 0 0;
+	font-family: mono;
+	font-size: 1em;
+	outline: none;
+};
+#nick-input:focus {
+	outline: none;
+	padding: 0 0 0 0;
+}
 
 #roll-button {
 	font-size: 30px;
@@ -62,9 +77,10 @@ body  {
 <tr>
 <td>
 	<button onclick="roll_all()" id="roll-button">Roll the dice!</button>
+</td>
+<td>
 	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
 </td>
-<td><form id="nick-form" action=""><input id="nick-input" autocomplete="off"/></form></td>
 </tr>
 <tr>
 <td width=768px><div id="rolls"><div></div></div></td>
