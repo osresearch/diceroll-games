@@ -39,9 +39,9 @@ npm install
 Then:
 
 ```
-npm start
+PORT=9999 npm start
 ```
 
-And go to http://localhost:4424/ to load the demo chat page
+And go to http://localhost:9999/ to load the demo chat page
 
 
