@@ -36,6 +36,7 @@ function nick_clicked(n)
 	let input = document.createElement('input');
 
 	let restore_nick_display = () => {
+		input.onblur = null;
 		form.parentNode.removeChild(form);
 		n.style.display = 'block';
 	};
