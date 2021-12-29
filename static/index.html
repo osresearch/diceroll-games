@@ -167,7 +167,6 @@ let dice_set = null;
 let dice_sets = {};
 function dice_sets_populate(new_dice_sets)
 {
-	dice_sets = new_dice_sets;
 	const sel = document.getElementById("dice-sets");
 	if (!sel)
 		return;
@@ -175,16 +174,31 @@ function dice_sets_populate(new_dice_sets)
 	// delete the existing items
 	sel.innerText = '';
 
-	for(let name in dice_sets)
+	// todo: check for existence
+	const dice = new_dice_sets["dice"];
+	const sets = new_dice_sets["sets"];
+	dice_sets = {};
+
+	for(let name in sets)
 	{
 		const opt = document.createElement("option");
 		opt.value = name;
 		opt.text = name;
 		sel.appendChild(opt);
 
+		const set = [];
+		for(let die of sets[name])
+		{
+			if (!(die in dice))
+				console.log(name, "bad die", die);
+			set.push(dice[die])
+		}
+
+		dice_sets[name] = set;
+
 		// default to the first one
 		if (!dice_set)
-			dice_set = dice_sets[name];
+			dice_set = set;
 	}
 }
 
