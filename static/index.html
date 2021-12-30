@@ -46,9 +46,15 @@ body  {
 
 .timestamp { color: #aaa; }
 .nick { color: #080; }
-.nick-self { color: blue; }
+.nick-self {
+	color: blue;
+}
 
-#nick-input {
+#players-nick-self {
+	color: blue;
+	text-decoration: underline;
+}
+#players-nick-self-input {
 	border-left: 0px;
 	border-right: 0px;
 	border-top: 0px;
@@ -57,8 +63,8 @@ body  {
 	font-family: mono;
 	font-size: 1em;
 	outline: none;
-};
-#nick-input:focus {
+}
+#players-nick-self-input:focus {
 	outline: none;
 	padding: 0 0 0 0;
 }
@@ -77,14 +83,21 @@ body  {
 <tr>
 <td>
 	<button onclick="roll_all()" id="roll-button">Roll the dice!</button>
+	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
 </td>
 <td>
-	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
+	<a href="about.html">About</a>
+	<a id="invite-link" href="">Invite link</a>
 </td>
 </tr>
 <tr>
-<td width=768px><div id="rolls"><div></div></div></td>
-<td style="vertical-align:top"><div id="nicks"></div></td>
+<td width=768px>
+	<div id="rolls"><div>
+	</div></div>
+</td>
+<td style="vertical-align:top">
+	<div id="nicks-header">Players</div>
+	<div id="nicks"></div></td>
 </tr>
 </table>
 

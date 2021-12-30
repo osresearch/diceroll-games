@@ -22,52 +22,8 @@ if (!document.location.hash)
 let room = document.location.hash;
 let peers = {};
 let rolls = {};
-
-
-// input box controls to broadcast the user's nick
 let nick = "UNKNOWN";
-// called when the user clicks on their own nick
-function nick_clicked(n)
-{
-	// hide this one, replace it w
-	console.log("clicked");
 
-	let form = document.createElement('form');
-	let input = document.createElement('input');
-
-	let restore_nick_display = () => {
-		input.onblur = null;
-		form.parentNode.removeChild(form);
-		n.style.display = 'block';
-	};
-
-	form.addEventListener('submit', (e) => {
-		e.preventDefault();
-		nick = input.value;
-		peers[sock.id] = nick;
-		console.log("my nick is ", nick);
-		sock.emit('nick', nick);
-
-		// and update our selves
-		for(let d of document.querySelectorAll('.peer-' + sock.id))
-			d.innerText = nick;
-
-		restore_nick_display();
-	});
-
-	form.appendChild(input);
-	n.parentNode.insertBefore(form, n);
-	n.style.display = 'none';
-
-	// select all and move input to the box
-	input.value = nick;
-	input.focus();
-	input.select();
-	input.autocomplete = 'off';
-	input.id = 'nick-input';
-	input.size = nick.length + 5;
-	input.onblur = restore_nick_display;
-}
 
 // load the dice configurations from the json file
 let dice_set = null;
@@ -163,8 +119,9 @@ function peer_add(member,nick=member)
 	{
 		// this is our own entry
 		n.classList.add('nick-self');
-		n.onclick = () => nick_clicked(n);
 		n.title = "Click to set your nickname";
+		n.id = "players-nick-self";
+		make_editable(n, nick_set);
 	}
 
 	n.innerText = nick;
@@ -224,6 +181,17 @@ sock.on('connected', (src) => {
 	// let the peer know our nickname
 	sock.emit('to', src, 'nick', nick);
 });
+
+function nick_set(new_nick)
+{
+	nick = new_nick;
+	peers[sock.id] = nick;
+	console.log("my nick is ", nick);
+	sock.emit('nick', nick);
+
+	for(let d of document.querySelectorAll('.peer-' + sock.id))
+		d.innerText = new_nick;
+}
 
 // update the nick display for a peer
 sock.on('nick', (src,their_nick) => {
