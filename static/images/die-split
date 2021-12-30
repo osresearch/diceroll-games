@@ -1,0 +1,24 @@
+#!/bin/bash
+
+file="$1"
+xcount="$2"
+ycount="$3"
+
+if [ ! -r "$file" ]; then
+	echo >&2 "$file: not found"
+	exit 1
+fi
+if [ -z "$xcount" ] || [ -z "$ycount" ]; then
+	echo >&2 "x and y limits must not be zero"
+	exit 1
+fi
+
+for x in `seq 0 $[$xcount - 1]`; do
+	for y in `seq 0 $[$ycount - 1]`; do
+		echo $x-$y
+		convert \
+			"$file" \
+			-crop 256x256+$[$x*256]+$[$y*256] \
+			"$(basename "$file" .png)"-$[$y+$x*$ycount+1].png
+	done
+done
