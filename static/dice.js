@@ -117,6 +117,7 @@ function log_append(src, msg, msg_class="message")
 	log.scrollTop = log.scrollHeight;
 }
 
+let initial_name = true;
 
 function peer_add(member,nick=member)
 {
@@ -131,9 +132,13 @@ function peer_add(member,nick=member)
 		return;
 
 	const li = document.createElement('li');
-	const n = document.createElement('div');
+	const n = document.createElement('span');
 	n.classList.add('peer-' + member);
 	n.classList.add('nick');
+
+	n.innerText = nick;
+	li.appendChild(n);
+	d.appendChild(li);
 
 	if (member == sock.id)
 	{
@@ -142,11 +147,19 @@ function peer_add(member,nick=member)
 		n.title = "Click to set your nickname";
 		n.id = "players-nick-self";
 		make_editable(n, nick_set);
+
+		if (initial_name)
+		{
+			// add something to help them know to change it
+			const help = document.createElement('span');
+			help.innerText = " Click to change!";
+			help.classList.add("hover-text");
+			help.id = "players-nick-self-help";
+			li.appendChild(help);
+			initial_name = false;
+		}
 	}
 
-	n.innerText = nick;
-	li.appendChild(n);
-	d.appendChild(li);
 }
 
 
@@ -209,6 +222,10 @@ function nick_set(new_nick)
 
 	for(let d of document.querySelectorAll('.peer-' + sock.id))
 		d.innerText = new_nick;
+
+	const help = document.getElementById("players-nick-self-help");
+	if (help)
+		help.parentNode.removeChild(help);
 }
 
 // update the nick display for a peer
