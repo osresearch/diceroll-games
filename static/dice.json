@@ -27,14 +27,14 @@
 		"images/pips/pips-6.png"
 	],
 	"d8": [
-		"images/pips/pips-1.png",
-		"images/pips/pips-2.png",
-		"images/pips/pips-3.png",
-		"images/pips/pips-4.png",
-		"images/pips/pips-5.png",
-		"images/pips/pips-6.png",
-		"images/pips/pips-7.png",
-		"images/pips/pips-8.png"
+		"images/d20/d20-1.png",
+		"images/d20/d20-2.png",
+		"images/d20/d20-3.png",
+		"images/d20/d20-4.png",
+		"images/d20/d20-5.png",
+		"images/d20/d20-6.png",
+		"images/d20/d20-7.png",
+		"images/d20/d20-8.png"
 	],
 	"d10": [
 		"images/pips/pips-1.png",
@@ -212,9 +212,10 @@
 	"3d6": ["d6", "d6", "d6"],
 	"2d10": ["d10", "d10"],
 	"4d4": ["d4", "d4", "d4", "d4"],
+	"4d8": ["d8", "d8", "d8", "d8"],
 	"4d20": ["d20", "d20", "d20", "d20"],
 	"d100": ["digit","digit"],
-	"coin-flip": ["d2"],
+	"coin-flip": ["d2", "d2", "d2", "d2", "d2", "d2"],
 	"eightball": ["eightball"],
 	"pizza": ["pizza-meat", "pizza-veggie", "pizza-veggie"],
 	"invest": ["invest-actions", "invest-stocks"],
