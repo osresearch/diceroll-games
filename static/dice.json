@@ -188,25 +188,25 @@
 		"images/pips/pips-9.png"
 	],
 	"r&t": [
-		"images/die-rs.png",
-		"images/die-rt.png",
-		"images/die-rc.png",
-		"images/die-ts.png",
-		"images/die-tt.png",
-		"images/die-tc.png"
+		"images/roads/die-rs.png",
+		"images/roads/die-rt.png",
+		"images/roads/die-rc.png",
+		"images/roads/die-ts.png",
+		"images/roads/die-tt.png",
+		"images/roads/die-tc.png"
 	],
 	"r&t-cross": [
-		"images/die-xs.png",
-		"images/die-xx.png",
-		"images/die-xc.png"
+		"images/roads/die-xs.png",
+		"images/roads/die-xx.png",
+		"images/roads/die-xc.png"
 	],
 	"r&t-water": [
-		"images/die-p1.png",
-		"images/die-p2.png",
-		"images/die-p3.png",
-		"images/die-l1.png",
-		"images/die-l2.png",
-		"images/die-l3.png"
+		"images/roads/die-p1.png",
+		"images/roads/die-p2.png",
+		"images/roads/die-p3.png",
+		"images/roads/die-l1.png",
+		"images/roads/die-l2.png",
+		"images/roads/die-l3.png"
 	]
 },
 "sets": {
