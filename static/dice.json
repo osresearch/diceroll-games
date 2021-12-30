@@ -60,6 +60,33 @@
 		"images/d10/d10-80.png",
 		"images/d10/d10-90.png"
 	],
+	"d12-1": [
+		"images/d12/d12-1.png",
+		"images/d12/d12-2.png",
+		"images/d12/d12-3.png",
+		"images/d12/d12-4.png",
+		"images/d12/d12-5.png",
+		"images/d12/d12-6.png",
+		"images/d12/d12-7.png",
+		"images/d12/d12-8.png",
+		"images/d12/d12-9.png",
+		"images/d12/d12-10.png",
+		"images/d12/d12-11.png",
+		"images/d12/d12-12.png"
+	],
+	"d12-2": [
+		"images/d12/d12-13.png",
+		"images/d12/d12-14.png",
+		"images/d12/d12-15.png",
+		"images/d12/d12-16.png",
+		"images/d12/d12-17.png",
+		"images/d12/d12-18.png",
+		"images/d12/d12-19.png",
+		"images/d12/d12-21.png",
+		"images/d12/d12-22.png",
+		"images/d12/d12-23.png",
+		"images/d12/d12-24.png"
+	],
 	"d20": [
 		"images/d20/d20-1.png",
 		"images/d20/d20-2.png",
@@ -213,6 +240,7 @@
 	"4d10": ["d10", "d10", "d10", "d10"],
 	"4d4": ["d4", "d4", "d4", "d4"],
 	"4d8": ["d8", "d8", "d8", "d8"],
+	"4d12": ["d12-1", "d12-2", "d12-1", "d12-2"],
 	"4d20": ["d20", "d20", "d20", "d20"],
 	"d100": ["d10-tens","d10"],
 	"coin-flip": ["d2", "d2", "d2", "d2", "d2", "d2"],
