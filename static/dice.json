@@ -37,16 +37,28 @@
 		"images/d20/d20-8.png"
 	],
 	"d10": [
-		"images/pips/pips-1.png",
-		"images/pips/pips-2.png",
-		"images/pips/pips-3.png",
-		"images/pips/pips-4.png",
-		"images/pips/pips-5.png",
-		"images/pips/pips-6.png",
-		"images/pips/pips-7.png",
-		"images/pips/pips-8.png",
-		"images/pips/pips-9.png",
-		"images/pips/pips-10.png"
+		"images/d10/d10-0.png",
+		"images/d10/d10-1.png",
+		"images/d10/d10-2.png",
+		"images/d10/d10-3.png",
+		"images/d10/d10-4.png",
+		"images/d10/d10-5.png",
+		"images/d10/d10-6.png",
+		"images/d10/d10-7.png",
+		"images/d10/d10-8.png",
+		"images/d10/d10-9.png"
+	],
+	"d10-tens": [
+		"images/d10/d10-00.png",
+		"images/d10/d10-10.png",
+		"images/d10/d10-20.png",
+		"images/d10/d10-30.png",
+		"images/d10/d10-40.png",
+		"images/d10/d10-50.png",
+		"images/d10/d10-60.png",
+		"images/d10/d10-70.png",
+		"images/d10/d10-80.png",
+		"images/d10/d10-90.png"
 	],
 	"d20": [
 		"images/d20/d20-1.png",
@@ -174,18 +186,6 @@
 		"images/misc/nov.png",
 		"images/misc/dec.png"
 	],
-	"digit": [
-		"images/pips/pips-0.png",
-		"images/pips/pips-1.png",
-		"images/pips/pips-2.png",
-		"images/pips/pips-3.png",
-		"images/pips/pips-4.png",
-		"images/pips/pips-5.png",
-		"images/pips/pips-6.png",
-		"images/pips/pips-7.png",
-		"images/pips/pips-8.png",
-		"images/pips/pips-9.png"
-	],
 	"r&t": [
 		"images/roads/die-rs.png",
 		"images/roads/die-rt.png",
@@ -210,11 +210,11 @@
 },
 "sets": {
 	"3d6": ["d6", "d6", "d6"],
-	"2d10": ["d10", "d10"],
+	"4d10": ["d10", "d10", "d10", "d10"],
 	"4d4": ["d4", "d4", "d4", "d4"],
 	"4d8": ["d8", "d8", "d8", "d8"],
 	"4d20": ["d20", "d20", "d20", "d20"],
-	"d100": ["digit","digit"],
+	"d100": ["d10-tens","d10"],
 	"coin-flip": ["d2", "d2", "d2", "d2", "d2", "d2"],
 	"eightball": ["eightball"],
 	"pizza": ["pizza-meat", "pizza-veggie", "pizza-veggie"],
