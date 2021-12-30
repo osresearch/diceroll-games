@@ -146,7 +146,8 @@ function peer_add(member,nick=member)
 		n.classList.add('nick-self');
 		n.title = "Click to set your nickname";
 		n.id = "players-nick-self";
-		make_editable(n, nick_set);
+
+		let editing = () => {};
 
 		if (initial_name)
 		{
@@ -157,7 +158,11 @@ function peer_add(member,nick=member)
 			help.id = "players-nick-self-help";
 			li.appendChild(help);
 			initial_name = false;
+
+			editing = () => help.parentNode.removeChild(help);
 		}
+
+		make_editable(n, nick_set, editing);
 	}
 
 }
@@ -222,10 +227,6 @@ function nick_set(new_nick)
 
 	for(let d of document.querySelectorAll('.peer-' + sock.id))
 		d.innerText = new_nick;
-
-	const help = document.getElementById("players-nick-self-help");
-	if (help)
-		help.parentNode.removeChild(help);
 }
 
 // update the nick display for a peer

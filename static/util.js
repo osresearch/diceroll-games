@@ -54,7 +54,7 @@ function sha256BigInt(x)
  * Make a div into an editable div, with a callback for
  * when the editing is finished.
  */
-function make_editable(div, changed = () => {})
+function make_editable(div, changed = (newvalue) => {}, editing = (div) => {})
 {
 	let form;
 	let input;
@@ -88,6 +88,8 @@ function make_editable(div, changed = () => {})
 		form.appendChild(input);
 		div.parentNode.insertBefore(form, div);
 		div.style.display = 'none';
+
+		editing(div);
 
 		// select all and move input to the box
 		const old_value = div.innerText;
