@@ -143,8 +143,7 @@
 		"images/misc/anchovies.png",
 		"images/misc/mushrooms.png",
 		"images/misc/pineapple.png",
-		"images/misc/rocket.png",
-		"images/misc/ham.png"
+		"images/misc/rocket.png"
 	],
 	"invest-actions": [
 		"images/misc/buy.png",
