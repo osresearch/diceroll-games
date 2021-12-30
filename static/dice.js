@@ -338,18 +338,21 @@ function roll_finalize(sock, which, tag)
 	const roll = rolls[tag];
 	const short_tag = tag.substr(0,16);
 
-	let result = BigInt(which); //BigInt("0x" + tag);
+	let result = BigInt("0x" + tag);
 	for (let peer in peers)
 	{
 		if (!(peer in roll))
 			return;
 		if (!("value" in roll[peer]))
 			return;
-		result += roll[peer].value; // already bigint
+		result ^= roll[peer].value; // already bigint
 	}
 
+	// hash the result to mix it a bit more
+	result = sha256BigInt(result);
+
 	const choices = dice_set[which].length;
-	const short_result = (result >> 200n) % BigInt(choices);
+	const short_result = (result >> 17n) % BigInt(choices);
 	const output = dice_set[which][short_result];
 
 	log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
