@@ -1,44 +1,44 @@
 {
 "dice":{
 	"d2": [
-		"images/die-0.png",
-		"images/die-10.png"
+		"images/pips/pips-0.png",
+		"images/pips/pips-10.png"
 	],
 	"d4": [
-		"images/die-1.png",
-		"images/die-2.png",
-		"images/die-3.png",
-		"images/die-4.png"
+		"images/pips/pips-1.png",
+		"images/pips/pips-2.png",
+		"images/pips/pips-3.png",
+		"images/pips/pips-4.png"
 	],
 	"d6": [
-		"images/die-1.png",
-		"images/die-2.png",
-		"images/die-3.png",
-		"images/die-4.png",
-		"images/die-5.png",
-		"images/die-6.png"
+		"images/pips/pips-1.png",
+		"images/pips/pips-2.png",
+		"images/pips/pips-3.png",
+		"images/pips/pips-4.png",
+		"images/pips/pips-5.png",
+		"images/pips/pips-6.png"
 	],
 	"d8": [
-		"images/die-1.png",
-		"images/die-2.png",
-		"images/die-3.png",
-		"images/die-4.png",
-		"images/die-5.png",
-		"images/die-6.png",
-		"images/die-7.png",
-		"images/die-8.png"
+		"images/pips/pips-1.png",
+		"images/pips/pips-2.png",
+		"images/pips/pips-3.png",
+		"images/pips/pips-4.png",
+		"images/pips/pips-5.png",
+		"images/pips/pips-6.png",
+		"images/pips/pips-7.png",
+		"images/pips/pips-8.png"
 	],
 	"d10": [
-		"images/die-1.png",
-		"images/die-2.png",
-		"images/die-3.png",
-		"images/die-4.png",
-		"images/die-5.png",
-		"images/die-6.png",
-		"images/die-7.png",
-		"images/die-8.png",
-		"images/die-9.png",
-		"images/die-10.png"
+		"images/pips/pips-1.png",
+		"images/pips/pips-2.png",
+		"images/pips/pips-3.png",
+		"images/pips/pips-4.png",
+		"images/pips/pips-5.png",
+		"images/pips/pips-6.png",
+		"images/pips/pips-7.png",
+		"images/pips/pips-8.png",
+		"images/pips/pips-9.png",
+		"images/pips/pips-10.png"
 	],
 	"d20": [
 		"images/d20/d20-1.png",
@@ -86,16 +86,16 @@
 		"images/eightball/eightball-21.png"
 	],
 	"digit": [
-		"images/die-0.png",
-		"images/die-1.png",
-		"images/die-2.png",
-		"images/die-3.png",
-		"images/die-4.png",
-		"images/die-5.png",
-		"images/die-6.png",
-		"images/die-7.png",
-		"images/die-8.png",
-		"images/die-9.png"
+		"images/pips/pips-0.png",
+		"images/pips/pips-1.png",
+		"images/pips/pips-2.png",
+		"images/pips/pips-3.png",
+		"images/pips/pips-4.png",
+		"images/pips/pips-5.png",
+		"images/pips/pips-6.png",
+		"images/pips/pips-7.png",
+		"images/pips/pips-8.png",
+		"images/pips/pips-9.png"
 	],
 	"r&t": [
 		"images/die-rs.png",
