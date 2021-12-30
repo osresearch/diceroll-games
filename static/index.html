@@ -101,9 +101,15 @@ body  {
 	<button onclick="roll_all()" id="roll-button">Roll the dice!</button>
 	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
 </div>
-<div id="rolls"><div>
+<div id="rolls"></div>
 
-<div id="log" style='max-height:400px; overflow:scroll'></div>
+<hr/>
+
+<div id="log-show" onclick='
+	const d = document.getElementById("log");
+	d.style.display = d.style.display ? "" : "none";
+'>Show/hide log</div>
+<div id="log" style='display:none;'></div>
 </body>
 
 <script src="dice.js"></script>

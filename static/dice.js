@@ -239,6 +239,7 @@ sock.on('nick', (src,their_nick) => {
 
 	peers[src] = their_nick;
 	console.log(src, "now known as", their_nick);
+	log_append(src, "nick " + their_nick);
 
 	for(let d of document.querySelectorAll('.peer-' + src))
 		d.innerText = their_nick;
