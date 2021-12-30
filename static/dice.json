@@ -216,7 +216,7 @@
 	"d100": ["digit","digit"],
 	"coin-flip": ["d2"],
 	"eightball": ["eightball"],
-	"pizza": ["pizza-meat", "pizza-veggie"],
+	"pizza": ["pizza-meat", "pizza-veggie", "pizza-veggie"],
 	"invest": ["invest-actions", "invest-stocks"],
 	"estimate": ["months", "days"],
 	"roads&trains": ["r&t", "r&t", "r&t", "r&t-cross"],
