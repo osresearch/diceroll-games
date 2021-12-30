@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>About Cryptographic Dice</title>
+
+<!-- HTML Meta Tags -->
+<meta name="description" content="Multi-party cryptographic dice rolling">
+
+<!-- Facebook Meta Tags -->
+<meta property="og:url" content="https://diceroll.games/about.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Multi-party cryptographic dice rolling">
+<meta property="og:description" content="Play dice games with untrusted friends across the network using cryptography.">
+<meta property="og:image" content="https://diceroll.games/images/header.jpg">
+
+<!-- Twitter Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta property="twitter:domain" content="diceroll.games">
+<meta property="twitter:url" content="https://diceroll.games/about.html">
+<meta name="twitter:title" content="Multi-party cryptographic dice rolling">
+<meta name="twitter:description" content="Play dice games with untrusted friends across the network using cryptography.">
+<meta name="twitter:image" content="https://diceroll.games/images/header.jpg">
+
+<!-- This is heavily inspired by https://socket.io/get-started/chat -->
+
+<style>
+body  {
+	background: #fff;
+	color: #080;
+	font-family: mono;
+}
+</style>
+</head>
+<body>
+
+<h1>Cryptographic Dice?</h1>
+
+<img src="images/pips/pips-1.png" id="die-0" width="128px" />
+<img src="images/pips/pips-2.png" id="die-1" width="128px" />
+<img src="images/pips/pips-3.png" id="die-2" width="128px" />
+<img src="images/pips/pips-4.png" id="die-3" width="128px" />
+<img src="images/pips/pips-5.png" id="die-4" width="128px" />
+<img src="images/pips/pips-6.png" id="die-5" width="128px" />
+
+<p>
+
+This site allows you to roll dice with your untrusted enemies
+in a way that should ensure that no set of the players can influence
+the outcome.  Even if all of the other players are colluding,
+as long as there is one honest player, then the results should be
+fair.  The server is also necessarily not trusted and not involved
+other than routing messages between the players.
+
+<h2>Flipping coins over the phone</h2>
+To understand how it works, consider a thought experiment of how you
+would flip a coin with an unscrupulous person on the phone.  You can't
+trust them to flip the coin and tell you the result.  Likewise they
+don't trust you to flip the coin.
+
+<p>You could both flip a coin and have
+a rule that if the two coins are the same then it is a Heads, and if the
+two coins are different then the result is a Tails.  This is fair, 50%
+of the time the coins will be the same and 50% of the time they will be
+different, except that now the issue is who says their result first?
+If you say you have a Heads, they can lie about their coin and
+effectively determine the result of the coin flip.
+
+<p>So what is necessary is a way to commit to the value of your coin
+flip, without revealing the actual value.  One-way cryptographic hash
+functions are perfect for this, with a minor caveat -- if you were to
+publish just <em>Hash("Heads")</em> or <em>Hash("Tails")</em>, then
+your opponent can precompute both of them to see which you have sent.
+Instead of hashing just <em>"Heads"</em> or <em>"Tails"</em>, each
+of you hash a large cryptographicly secure random number.  And then
+the bottom bit of the random number is used to determine your coin flip:
+0 is Tails, 1 is Heads.  The bottom bit of your number and their number
+are XOR'ed and the result is used to determine the final coin flip.
+Now it doesn't matter who reveals first since
+the other party can't change their result.
+
+<p>(Another approach is that if you have exchanged public keys with your
+enemies, you could sign your coin flip (along with some random padding as
+before to ensure they can't guess it) and send just the signature first.
+Then both of you reveal the padding and the coin flip, and can verify
+each other's signatures.)
+
+<p>
+The nice thing about this cryptographic coin flip techinque is that
+it generalizes to an arbitrary number of people on the phone call.
+Even if the rest of them collude to come up with random numbers that XOR
+to their desired value, they don't know if your random number will flip
+that result or not.
+
+<h2>What if we want to keep the results secret?</h2>
+With the XOR technique the server and anyone watching the clear-text
+traffic can learn the value of the coin flip.  The actual traffic is
+encrypted with TLS, so it is harder to for anyone outside the server
+to see, but the server still learns the result.  As an extension,
+rather than committing to <em>Hash(X)</em>, instead we use Diffie-Helman
+and commit to <em>Hash(X=G^x % p)</em> while our opponent can send us
+<em>Hash(Y=G^y % p)</em>.  After revealing our values, we can both
+then compute <em>(G^x % p)^y = G^(x+y) % p</em> and use that for
+our random value.  Again, this generalizes for arbitrary number of players.
+This way no outside party can determine what the result is for our coin flip.
+
+<h2>But can we trust the server?</h2>
+No, and there are a few steps in place to fix this. We'll need to import
+the public key management from <a href="https://secret.cards">secret.cards</a>
+to allow players to sign their commitments, instead of using hashes.
+
+<script>
+function die_replace()
+{
+	const which = Math.floor(Math.random() * 40);
+	const result = Math.floor(Math.random() * 6) + 1;
+
+	const d = document.getElementById("die-" + which);
+	if (!d)
+		return;
+
+	d.src = "images/pips/pips-" + result + ".png";
+}
+
+setInterval(die_replace, 100);
+</script>
+</html>
