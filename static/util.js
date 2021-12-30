@@ -49,6 +49,40 @@ function sha256BigInt(x)
 	return arrayToBigInt(sha256.sha256(arrayFromBigInt(x, 32)));
 }
 
+/*
+ * Compute a^e % n with big integers
+ * using the modular exponentiation so that it can be done
+ * in (non-constant) log2 time.  a and e can be either BigInt,
+ * number or hex strings.  Returns a BigInt.
+ */
+function modExp(a, e, n)
+{
+	if (typeof(a) === "string")
+		a = BigInt("0x" + a);
+	else if (typeof(a) == "number")
+		a = BigInt(a);
+
+	if (typeof(e) === "string")
+		e = BigInt("0x" + e);
+	else if (typeof(e) == "number")
+		e = BigInt(e);
+
+	let r = 1n;
+	let x = a % n;
+
+	while (e != 0n)
+	{
+		if (e & 1n)
+			r = (r * x) % n;
+
+		e >>= 1n;
+		x = (x * x) % n;
+	}
+
+	return r;
+}
+
+
 
 /*
  * Make a div into an editable div, with a callback for
