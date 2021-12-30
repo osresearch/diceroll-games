@@ -30,6 +30,7 @@
 	crossorigin="anonymous"
 ></script>
 <script src="sha256.js" ></script>
+<script src="words.js" ></script>
 <script src="util.js" ></script>
 
 <style>
@@ -48,6 +49,10 @@ body  {
 .nick { color: #080; }
 .nick-self {
 	color: blue;
+}
+
+#nicks-header {
+	font-weight: bold;
 }
 
 #players-nick-self {
@@ -97,7 +102,8 @@ body  {
 </td>
 <td style="vertical-align:top">
 	<div id="nicks-header">Players</div>
-	<div id="nicks"></div></td>
+	<ul id="nicks"></ul>
+</td>
 </tr>
 </table>
 
