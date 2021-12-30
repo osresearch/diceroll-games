@@ -4,6 +4,8 @@
 const server = document.location.origin;
 const sock = io.connect(server);
 
+// If there isn't a room ID, create one and append
+// it to the URL string
 if (!document.location.hash)
 {
 	let rand_room = randomBigInt(16).toString(36);
@@ -19,10 +21,27 @@ if (!document.location.hash)
 		+ rand_room.substr(12,4);
 }
 
+// update the invite link and add a click-to-copy
+const invite = document.getElementById("invite-link");
+if (invite)
+{
+	invite.href = document.location.href;
+	invite.title = "Click to copy the invite link";
+	invite.onclick = (e) => {
+		e.preventDefault();
+		navigator.clipboard.writeText(document.location.href)
+			.then(() => {});
+
+		// todo: little popup to say "Copied!"
+
+		return false;
+	};
+}
+
 let room = document.location.hash;
 let peers = {};
 let rolls = {};
-let nick = "UNKNOWN";
+let nick = words.random(2);
 
 
 // load the dice configurations from the json file
@@ -111,6 +130,7 @@ function peer_add(member,nick=member)
 	if (!d)
 		return;
 
+	const li = document.createElement('li');
 	const n = document.createElement('div');
 	n.classList.add('peer-' + member);
 	n.classList.add('nick');
@@ -125,7 +145,8 @@ function peer_add(member,nick=member)
 	}
 
 	n.innerText = nick;
-	d.appendChild(n);
+	li.appendChild(n);
+	d.appendChild(li);
 }
 
 
@@ -137,9 +158,6 @@ sock.on('connect', () => {
 	// reset our peer list, cancel any die rolls in process
 	peers = {};
 	rolls = {};
-
-	if (nick == "UNKNOWN")
-		nick = sock.id;
 
 	// join the room in the URL
 	console.log(server, "RECONNECTED");
