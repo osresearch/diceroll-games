@@ -96,17 +96,19 @@ With the XOR technique the server and anyone watching the clear-text
 traffic can learn the value of the coin flip.  The actual traffic is
 encrypted with TLS, so it is harder to for anyone outside the server
 to see, but the server still learns the result.  As an extension,
-rather than committing to <em>Hash(X)</em>, instead we use Diffie-Helman
+rather than committing to <em>Hash(X)</em>, instead we use Diffie-Hellman
 and commit to <em>Hash(X=G^x % p)</em> while our opponent can send us
 <em>Hash(Y=G^y % p)</em>.  After revealing our values, we can both
 then compute <em>(G^x % p)^y = G^(x+y) % p</em> and use that for
-our random value.  Again, this generalizes for arbitrary number of players.
+our random value.  Again, <a href="https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Operation_with_more_than_two_parties">this generalizes for arbitrary number of players</a>,
+with some need to establish ordering, and is a todo item.
 This way no outside party can determine what the result is for our coin flip.
 
-<h2>But can we trust the server?</h2>
-No, and there are a few steps in place to fix this. We'll need to import
+<h2>Now can we trust the server?</h2>
+No, and there are a few more steps required to fix this. We'll need to import
 the public key management from <a href="https://secret.cards">secret.cards</a>
-to allow players to sign their commitments, instead of using hashes.
+to allow players to sign their commitments, and a way for players to
+establish identity out-of-band.
 
 <script>
 function die_replace()
