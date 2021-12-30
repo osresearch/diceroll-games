@@ -43,6 +43,8 @@ let peers = {};
 let rolls = {};
 let nick = words.random(2);
 
+let distribution = [0,0,0,0,0,0];
+
 
 // load the dice configurations from the json file
 let dice_set = null;
@@ -344,20 +346,21 @@ function roll_finalize(sock, which, tag)
 	const short_tag = tag.substr(0,16);
 
 	let result = BigInt("0x" + tag);
+	const base = (1n << 255n) - 19n;
 	for (let peer in peers)
 	{
 		if (!(peer in roll))
 			return;
 		if (!("value" in roll[peer]))
 			return;
-		result ^= roll[peer].value; // already bigint
+		result = modExp(result, roll[peer].value, base);
 	}
 
 	// hash the result to mix it a bit more
 	result = sha256BigInt(result);
 
-	const choices = dice_set[which].length;
-	const short_result = (result >> 17n) % BigInt(choices);
+	const choices = BigInt(dice_set[which].length);
+	const short_result = Number(result % choices);
 	const output = dice_set[which][short_result];
 
 	log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
@@ -377,6 +380,12 @@ function roll_finalize(sock, which, tag)
 	img.style.opacity = 1.0;
 	img.onclick = () => { img.style.opacity = img.style.opacity > 0.5 ? 0.25 : 1.0 };
 	r.appendChild(img);
+
+/*
+	// update the distribution
+	document.getElementById('count-'+short_result).innerText =
+		++distribution[short_result];
+*/
 }
 
 // called when a peer has initiated a new roll
@@ -557,3 +566,15 @@ sock.on('reveal', (src,msg) => {
 
 	roll_finalize(sock, which, tag);
 });
+
+
+function randtest(n)
+{
+	let dist = [0,0,0,0,0,0];
+	while(1)
+	{
+		if (dist[Math.floor(Math.random() * 6)]++ > n)
+			return dist;
+	}
+	return dist;
+}
