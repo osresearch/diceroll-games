@@ -93,6 +93,52 @@
 		"images/eightball/eightball-20.png",
 		"images/eightball/eightball-21.png"
 	],
+	"pizza-meat": [
+		"images/misc/pepperoni.png",
+		"images/misc/supreme.png",
+		"images/misc/anchovies.png",
+		"images/misc/chickenwings.png",
+		"images/misc/tofu.png",
+		"images/misc/ham.png"
+	],
+	"pizza-veggie": [
+		"images/misc/cheese.png",
+		"images/misc/onion.png",
+		"images/misc/anchovies.png",
+		"images/misc/mushrooms.png",
+		"images/misc/pineapple.png",
+		"images/misc/rocket.png",
+		"images/misc/ham.png"
+	],
+	"invest-actions": [
+		"images/misc/buy.png",
+		"images/misc/hold.png",
+		"images/misc/sell.png",
+		"images/misc/pump.png",
+		"images/misc/dump.png",
+		"images/misc/short.png"
+	],
+	"invest-stocks": [
+		"images/misc/dollar.png",
+		"images/misc/euro.png",
+		"images/misc/aapl.png",
+		"images/misc/tsla.png",
+		"images/misc/doge.png",
+		"images/misc/btc.png"
+	],
+	"months": [
+		"images/misc/jan.png",
+		"images/misc/feb.png",
+		"images/misc/mar.png",
+		"images/misc/may.png",
+		"images/misc/jun.png",
+		"images/misc/jul.png",
+		"images/misc/aug.png",
+		"images/misc/sep.png",
+		"images/misc/oct.png",
+		"images/misc/nov.png",
+		"images/misc/dec.png"
+	],
 	"digit": [
 		"images/pips/pips-0.png",
 		"images/pips/pips-1.png",
@@ -135,6 +181,9 @@
 	"d100": ["digit","digit"],
 	"coin-flip": ["d2"],
 	"eightball": ["eightball"],
+	"pizza": ["pizza-meat", "pizza-veggie"],
+	"invest": ["invest-actions", "invest-stocks"],
+	"estimate": ["months", "d4", "d10"],
 	"roads&trains": ["r&t", "r&t", "r&t", "r&t-cross"],
 	"roads&trains&water": ["r&t", "r&t", "r&t", "r&t-cross", "r&t-water", "r&t-water"]
 }
