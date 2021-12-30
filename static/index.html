@@ -89,28 +89,19 @@ body  {
 </head>
 <body>
 
-<table>
-<tr>
-<td>
-	<button onclick="roll_all()" id="roll-button">Roll the dice!</button>
-	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
-</td>
-<td>
+<div id="links-container">
 	<a href="about.html">About</a>
 	<a id="invite-link" href="">Invite link</a>
-</td>
-</tr>
-<tr>
-<td width=768px>
-	<div id="rolls"><div>
-	</div></div>
-</td>
-<td style="vertical-align:top">
+</div>
+<div id="nick-container">
 	<div id="nicks-header">Players</div>
 	<ul id="nicks"></ul>
-</td>
-</tr>
-</table>
+</div>
+<div id="control-container">
+	<button onclick="roll_all()" id="roll-button">Roll the dice!</button>
+	<select onchange="dice_set_choose(this)" id="dice-sets"></select>
+</div>
+<div id="rolls"><div>
 
 <div id="log" style='max-height:400px; overflow:scroll'></div>
 </body>
