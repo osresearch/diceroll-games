@@ -1,15 +1,14 @@
+![header image with some dice rolls](static/images/header.jpg)
+
 # multiparty cryptographic dice rolling server
 
-With diceroll.games you can play dice games with untrustworhy
-friends using cryptographic commitments.  As long as there is
-one honest player, the other players can not collude to influence
-the outcome of the die roll.  Although all the players can
-collude; an outside observer can not trust the dice rolls
-unless they participate in the rolling process.
+![die 1](static/images/pips/pips-1.png)
 
-The server is not necessarily trustworthy and other parties can spoof
-messages, so it is important to build higher-level trust atop of the
-system.  Currently not yet implemented.
+With diceroll.games you can play dice games with untrustworhy
+friends using cryptographic commitments and end-to-end encrypted
+communications through an untrusted server.  As long as there is
+one honest player, the other players can not collude to influence
+the outcome of the die roll.
 
 The site is heavily inspired by https://secret.cards/ and draws
 from https://socket.io/get-started/chat for the communication
@@ -17,20 +16,36 @@ API.
 
 ## Playing games
 
+![die 2](static/images/pips/pips-2.png)
+
 Send the full URL including the `#abcd-xyzw...` portion to the
-other players. Set your nickname in the box. Select the type
-of dice to use. Hit `Roll the dice!` and hope for the best.
+other players.  Set your nickname by clicking on the blue
+highlighted player, hover over the other players to get their
+verification codes. Select the type of dice to use.
+Hit `Roll the dice!` and hope for the best!
 
 
-## Reployment
+## Deployment
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/4e4057d6-a84b-4710-901c-7944b744411a/deploy-status)](https://app.netlify.com/sites/nervous-shockley-4d7118/deploys)
+![die 3](static/images/pips/pips-3.png)
 
-https://diceroll.games/
+Currently running on a home server with an nginx front end
+to do SSL termination for https://diceroll.games/
+
+Since it uses the `crypto` API in the webbrowser, it must
+be loaded from `localhost` or over `https`.
+
+## Adding dice
+
+![die 4](static/images/pips/pips-4.png)
+
+Check out `static/dice.json` to see how to add new dice or sets.
 
 ## Debugging Setup
 
-Once:
+![die 5](static/images/pips/pips-5.png)
+
+After checkout:
 
 ```
 npm install
@@ -42,6 +57,12 @@ Then:
 PORT=9999 npm start
 ```
 
-And go to http://localhost:9999/ to load the demo chat page
+And go to http://localhost:9999/ to load the dice rolling page
 
 
+## Security analysis
+
+![die 5](static/images/pips/pips-5.png)
+
+Please contribute if you can! Is the DH implementation ok?
+Is AES-GCM the right approach? Feel free to poke at it!
