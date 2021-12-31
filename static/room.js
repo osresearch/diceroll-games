@@ -55,11 +55,12 @@ constructor(server=document.location.origin, room=document.location.hash)
 		console.log(this.server, room, "peers", peers);
 
 		// delete any peers not in the new list
-		this.removed_peers = [];
 		for(const peer in this.peers)
 		{
 			if (peer in peers)
 				continue;
+
+			console.log("----- removed", this.peers[peer].id);
 
 			this.removed_peers[peer] = this.peers[peer];
 			delete this.peers[peer];
@@ -100,6 +101,7 @@ constructor(server=document.location.origin, room=document.location.hash)
 		if (!(src in this.peers))
 			return this.error("unknown peer left");
 
+		this.removed_peers[src] = this.peers[src];
 		delete this.peers[src];
 
 		this.rekey();
@@ -241,6 +243,7 @@ rekey_complete(pubkey)
 
 		console.log("private key", privkey.toString(16));
 		this.handle('members', this.peers, this.removed_peers);
+		this.removed_peers = {};
 	});
 }
 

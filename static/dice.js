@@ -120,28 +120,32 @@ function log_append(src, msg, msg_class="message")
 
 let initial_name = true;
 
-function peer_add(member,nick=member)
+function peer_add(peer)
 {
 	rolls = {}; // always cancel any runs in process
 
-	peers[member] = nick;
+	log_append(server, '+ ' + peer.id, 'message-public');
 
-	log_append(server, '+ ' + member, 'message-public');
+	// don't add if they already exist
+	if (document.getElementById("peerlist-" + peer.id))
+		return;
 
+	// any new peers should be added
 	const d = document.getElementById("nicks");
 	if (!d)
 		return;
 
 	const li = document.createElement('li');
 	const n = document.createElement('span');
-	n.classList.add('peer-' + member);
+	n.classList.add('peer-' + peer.id);
 	n.classList.add('nick');
+	n.id = "peerlist-" + peer.id;
 
-	n.innerText = nick;
+	n.innerText = peer.nick;
 	li.appendChild(n);
 	d.appendChild(li);
 
-	if (member == sock.id)
+	if (peer.id == sock.id)
 	{
 		// this is our own entry
 		n.classList.add('nick-self');
@@ -165,9 +169,9 @@ function peer_add(member,nick=member)
 
 		make_editable(n, nick_set, editing);
 	}
-
 }
 
+peer_add({id: sock.id, nick: sock.id});
 
 /*
  * These are the system level ones that the server sends to us
@@ -196,6 +200,7 @@ sock.on('members', (peers,removed_peers) => {
 	for(const src in removed_peers)
 	{
 		let peer = removed_peers[src];
+		console.log(peer.id, "removed");
 		for(let d of document.querySelectorAll('.peer-' + peer.id))
 			d.style.opacity = 0.1;
 	}
@@ -206,16 +211,11 @@ sock.on('members', (peers,removed_peers) => {
 		let peer = peers[src];
 		if (!peer.nick)
 			peer.nick = peer.id;
+		peer_add(peers[src]);
 	}
 
-	// any new peers should be added
-	const d = document.getElementById("nicks");
-	if (!d)
-		return;
-
-//	for(let member of members)
-//		peer_add(member);
 });
+
 
 function nick_set(new_nick)
 {
