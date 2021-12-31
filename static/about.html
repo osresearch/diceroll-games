@@ -95,17 +95,21 @@ that result or not.
 With the XOR technique the server and anyone watching the clear-text
 traffic can learn the value of the coin flip.  The actual traffic is
 encrypted with TLS, so it is harder to for anyone outside the server
-to see, but the server still learns the result.  As an extension,
-rather than committing to <em>Hash(X)</em>, instead we use Diffie-Hellman
-and commit to <em>Hash(X=G^x % p)</em> while our opponent can send us
-<em>Hash(Y=G^y % p)</em>.  After revealing our values, we can both
-then compute <em>(G^x % p)^y = G^(x+y) % p</em> and use that for
-our random value.  Again, <a href="https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Operation_with_more_than_two_parties">this generalizes for arbitrary number of players</a>,
-with some need to establish ordering, and is a todo item.
-This way no outside party can determine what the result is for our coin flip.
+to see, but the server still learns the result.  Instead we 
+we use Diffie-Hellman to generate a shared secret for all of the peers
+player and use it to protect all of the communication.
+Again, <a href="https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Operation_with_more_than_two_parties">this generalizes for arbitrary number of players</a>,
+with some need to establish ordering so that there is a ring of subkeys computed and shared.
+
+This way no outside party can determine what the result is for our coin flip,
+not even if they have code execution on the server.  They can try to sneak
+a fake player into the round, but you can use an out-of-band channel (like
+your voice chat) to verify the public portion of each player's Diffie-Hellman
+key.  If the four words don't match, then something has tried to MITM
+the group key establishment.
 
 <h2>Now can we trust the server?</h2>
-No, and there are a few more steps required to fix this. We'll need to import
+The server is never trusted, although there are a few more steps required to fix this. We'll need to import
 the public key management from <a href="https://secret.cards">secret.cards</a>
 to allow players to sign their commitments, and a way for players to
 establish identity out-of-band.
