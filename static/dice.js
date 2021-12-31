@@ -300,7 +300,7 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 	});
 
 	// if there are no peers, start the reveal
-	if (sock.peer_count()== 1)
+	if (sock.peer_count() == 0)
 		roll_reveal(sock, which, tag_str);
 }
 
@@ -317,7 +317,7 @@ function roll_reveal(sock, which, tag)
 		"value": my_value,
 	});
 
-	if (sock.peer_count() == 1)
+	if (sock.peer_count() == 0)
 		roll_finalize(sock, which, tag);
 }
 

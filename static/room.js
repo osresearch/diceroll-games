@@ -169,6 +169,10 @@ rekey()
 	for(const peer in this.peers)
 		this.peers[peer].pubkey = null;
 
+	// if there are no peers, then we don't have to negotiate anything
+	if (this.peer_count() == 0)
+		return this.rekey_complete(this.base);
+
 	// figure out who our next peer is this time
 	this.peer_find();
 	console.log("next/prev=", this.next, this.prev);
