@@ -32,6 +32,14 @@ if (invite)
 			.then(() => {});
 
 		// todo: little popup to say "Copied!"
+		const d = document.createElement('div');
+		d.innerText = "Copied!";
+		d.classList.add("floating");
+		invite.appendChild(d);
+		setTimeout(() => {
+			d.classList.add("fade-out");
+			setTimeout(() => d.parentNode.removeChild(d), 1200);
+		}, 700);
 
 		return false;
 	};
