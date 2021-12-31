@@ -142,6 +142,7 @@ function peer_add(peer)
 	n.id = "peerlist-" + peer.id;
 
 	n.innerText = peer.nick;
+	n.title = "Verification code " + peer.id;
 	li.appendChild(n);
 	d.appendChild(li);
 
@@ -149,7 +150,6 @@ function peer_add(peer)
 	{
 		// this is our own entry
 		n.classList.add('nick-self');
-		n.title = "Click to set your nickname";
 		n.id = "players-nick-self";
 
 		let editing = () => {};
@@ -163,8 +163,12 @@ function peer_add(peer)
 			help.id = "players-nick-self-help";
 			li.appendChild(help);
 			initial_name = false;
+			n.title = "Click to set your nickname";
 
-			editing = () => help.parentNode.removeChild(help);
+			editing = () => {
+				help.parentNode.removeChild(help);
+				n.title = "Your verification code " + peer.id;
+			};
 		}
 
 		make_editable(n, nick_set, editing);
