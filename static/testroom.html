@@ -16,5 +16,8 @@
 </body>
 <script>
 const room = new Room(document.location.origin, "test-room");
+
+room.on("foo", (bar) => console.log(bar));
+
 </script>
 </html>
