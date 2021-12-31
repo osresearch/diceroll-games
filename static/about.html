@@ -44,12 +44,19 @@ body  {
 
 <p>
 
-This site allows you to roll dice with your untrusted enemies
+This site allows you to secretly roll dice with your untrusted enemies
 in a way that should ensure that no set of the players can influence
 the outcome.  Even if all of the other players are colluding,
 as long as there is one honest player, then the results should be
-fair.  The server is also necessarily not trusted and not involved
-other than routing messages between the players.
+fair.  The server is also untrusted and not involved
+other than routing messages between the players,
+who establish a group session key using Diffie-Hellman so that
+they can have end-to-end encryption of the actual dice rolls.
+
+The players have four verification words that can be used out-of-band
+to verify that their actual public key was used to establish the session
+key, which protects against the server or a MITM attempting to
+sneak in a fake key for a player.
 
 <h2>Flipping coins over the phone</h2>
 To understand how it works, consider a thought experiment of how you
@@ -82,7 +89,8 @@ the other party can't change their result.
 enemies, you could sign your coin flip (along with some random padding as
 before to ensure they can't guess it) and send just the signature first.
 Then both of you reveal the padding and the coin flip, and can verify
-each other's signatures.)
+each other's signatures, although this requires more math and key management
+than the simple XOR and hash)
 
 <p>
 The nice thing about this cryptographic coin flip techinque is that
@@ -95,12 +103,14 @@ that result or not.
 With the XOR technique the server and anyone watching the clear-text
 traffic can learn the value of the coin flip.  The actual traffic is
 encrypted with TLS, so it is harder to for anyone outside the server
-to see, but the server still learns the result.  Instead we 
+to see, but the server could still learn the result.  Instead we 
 we use Diffie-Hellman to generate a shared secret for all of the peers
 player and use it to protect all of the communication.
-Again, <a href="https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Operation_with_more_than_two_parties">this generalizes for arbitrary number of players</a>,
-with some need to establish ordering so that there is a ring of subkeys computed and shared.
+This algorithm <a href="https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Operation_with_more_than_two_parties">generalizes for arbitrary number of players</a>, with some additional math and a way to agree on an
+ordering of the players.  The worst case is the server can prevent
+key agreement, but that doesn't sacrifice the security of the system.
 
+<p>
 This way no outside party can determine what the result is for our coin flip,
 not even if they have code execution on the server.  They can try to sneak
 a fake player into the round, but you can use an out-of-band channel (like
