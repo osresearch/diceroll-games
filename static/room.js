@@ -13,7 +13,6 @@
  */
 class Room
 {
-reconnected() {}
 rekeyed() {}
 
 error(s) {
@@ -26,9 +25,15 @@ constructor(server=document.location.origin, room=document.location.hash)
 	this.sock = io.connect(server);
 	this.room = room;
 	this.peers = {};
+	this.removed_peers = {};
 	this.base = 2; // small base is ok
 	this.modulus = (1n << 255n) - 19n; // 25519, should be a sophie prime?
 	this.handlers = {};
+
+	// generate our private group key component
+	this.exponent = randomBigInt(64);
+	this.pubkey = modExp(this.base, this.exponent, this.modulus);
+	this.id = words.bigint2words(this.pubkey, 4);
 
 	// called when a connection to the server is established
 	this.sock.on('connect', () => {
@@ -37,11 +42,8 @@ constructor(server=document.location.origin, room=document.location.hash)
 		// rejoin the desired room
 		this.sock.emit('room', this.room);
 
-		// reset our peer list
-		this.peers = {};
-
 		// call any subclass handlers
-		this.reconnected();
+		this.handle('connect');
 	});
 
 	// server sends this message when a new room is joined
@@ -52,13 +54,24 @@ constructor(server=document.location.origin, room=document.location.hash)
 	this.sock.on('members', (room, peers) => {
 		console.log(this.server, room, "peers", peers);
 
-		// reset our peer list
-		this.peers = {};
+		// delete any peers not in the new list
+		this.removed_peers = [];
+		for(const peer in this.peers)
+		{
+			if (peer in peers)
+				continue;
 
+			this.removed_peers[peer] = this.peers[peer];
+			delete this.peers[peer];
+		}
+
+		// and now create an entry for this peer if we don't know it.
 		for(const peer of peers)
 		{
+			if (peer in this.peers)
+				continue;
+
 			this.peers[peer] = {
-				nick: peer,
 				pubkey: null,
 			};
 		}
@@ -72,10 +85,9 @@ constructor(server=document.location.origin, room=document.location.hash)
 		console.log(this.server, this.room, "new peer", src);
 
 		if (src in this.peers)
-			return this.error("duplidate peer joined");
+			return this.error("duplicate peer joined");
 
 		this.peers[src] = {
-			nick: src,
 			pubkey: null,
 		};
 
@@ -145,9 +157,7 @@ rekey()
 {
 	console.log("REKEY INITIATED " + this.peer_count() + " peers");
 
-	// generate our private group key component
-	this.exponent = randomBigInt(64);
-	this.pubkey = modExp(this.base, this.exponent, this.modulus);
+	// destroy the old private key
 	this.privkey = null;
 
 	// and our counter for AES-GCM
@@ -162,9 +172,10 @@ rekey()
 	console.log("next/prev=", this.next, this.prev);
 	this.pubkeys_received = 0;
 
-	// send the public part of our group key
-	// along with our nick name.
-	this.sock.emit('pubkey', this.pubkey.toString(16), this.counter.toString(16));
+	// send the public part of our group key and our GCM counter
+	const pubkey_str = this.pubkey.toString(16);
+	console.log("pubkey", pubkey_str);
+	this.sock.emit('pubkey', pubkey_str, this.counter.toString(16));
 }
 
 // when we receive a pubkey from a peer
@@ -177,10 +188,9 @@ rekey_pubkey(src,pubkey,counter)
 	if (peer.pubkey != null)
 		return this.error("already received pubkey");
 
-	pubkey = BigInt("0x" + pubkey);
-	peer.pubkey = pubkey;
-	peer.verify = words.bigint2words(pubkey, 4);
+	peer.pubkey = BigInt("0x" + pubkey);
 	peer.counter = BigInt("0x" + counter);
+	peer.id = words.bigint2words(peer.pubkey, 4);
 
 	// if this is our predecessor in the ring,
 	// move it to phase 2
@@ -228,10 +238,9 @@ rekey_complete(pubkey)
 		["encrypt", "decrypt"]
 	).then((key_encoded) => {
 		this.privkey = key_encoded;
-		this.rekeyed();
 
 		console.log("private key", privkey.toString(16));
-		this.rekeyed();
+		this.handle('members', this.peers, this.removed_peers);
 	});
 }
 
@@ -252,7 +261,6 @@ rx_raw(src,msg)
 	const peer = this.peers[src];
 	const counter = arrayFromBigInt(peer.counter, 16);
 	peer.counter++;
-	console.log(peer.nick, peer.counter.toString(16), msg);
 
 	// THERE HAS GOT TO BE A BETTER WAY
 	const enc_buf = Uint8Array.from(arrayFromBigInt(BigInt("0x" + msg), Math.floor(msg.length/2 + 0.5)));
@@ -267,7 +275,7 @@ rx_raw(src,msg)
 	).then((buf) => {
 		const msg_str = new TextDecoder('utf-8').decode(buf)
 		const msg = JSON.parse(msg_str);
-		console.log(src, "decrypted", msg);
+		//console.log(peer.id, "decrypted", msg);
 
 		// no topic == chaffe
 		if (!("topic" in msg))
@@ -275,7 +283,7 @@ rx_raw(src,msg)
 		if (!("msg" in msg))
 			return;
 
-		return this.handle(msg.topic, ...msg.msg);
+		return this.handle(msg.topic, peer, ...msg.msg);
 	}).catch((err) => {
 		console.log(src, "GCM ERROR", msg, enc_buf, err);
 		this.error("decrypt error; server meddling?");
@@ -301,7 +309,6 @@ tx_raw(buf)
 	).then((enc) => {
 		// there has to be a better way, but wtf javascript
 		const hex = arrayToBigInt(new Uint8Array(enc)).toString(16);
-		console.log("encrypted", counter, enc, hex);
 		this.sock.emit("message", hex);
 	});
 }
