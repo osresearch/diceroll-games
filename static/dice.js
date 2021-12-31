@@ -216,6 +216,9 @@ sock.on('members', (peers,removed_peers) => {
 		if (!peer.nick)
 			peer.nick = peer.id;
 		peer_add(peers[src]);
+
+		for(let d of document.querySelectorAll('.peer-' + peer.id))
+			d.style.opacity = 1.0; // if they come back
 	}
 
 });
