@@ -88,14 +88,14 @@ io.on('connection', (socket) => {
 	// otherwise echo any normal message to everyone in the room
 	// prefixing it with the socket id of the sender
 	// note that we do not send messages to the sender
-	socket.onAny((topic,msg) => {
+	socket.onAny((topic,...args) => {
 		// don't forward any reserved topics
 		if (topic in reserved_topics)
 			return;
 
 		try {
-			console.log(socket.id + ":" + socket.room + ":" + topic, msg);
-			socket.broadcast.to(socket.room).emit(topic, socket.id, msg);
+			console.log(socket.id + ":" + socket.room + ":" + topic, ...args);
+			socket.broadcast.to(socket.room).emit(topic, socket.id, ...args);
 		} catch (err) {
 			console.log(socket.id, "error", err);
 		}
