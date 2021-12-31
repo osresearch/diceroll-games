@@ -32,11 +32,31 @@
 <script src="sha256.js" ></script>
 <script src="words.js" ></script>
 <script src="util.js" ></script>
+<script src="room.js" ></script>
 
 <style>
+/* default (light) color palette */
+:root {
+        background: white;
+        color: #080;
+        --link-text: blue;
+        --link-text-visited: purple;
+}
+
+@media (prefers-color-scheme: dark) {
+        :root {
+                background: black;
+                color: white;
+                --link-text: #62b2e6;
+                --link-text-visited: #9d7c9b;
+        }
+
+	img {
+		filter: hue-rotate(135deg) invert();
+	}
+}
+
 body  {
-	background: #fff;
-	color: #080;
 	font-family: mono;
 }
 .message-private { color: #ccc; }
