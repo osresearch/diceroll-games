@@ -10,7 +10,7 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
 	cors: {
-		origin: [ "https://secret.cards", "http://localhost:4423" ],
+		origin: [ "https://direroll.games", "http://localhost:9999" ],
 		methods: ["GET", "POST"],
 	},
 });
