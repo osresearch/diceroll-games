@@ -21,11 +21,11 @@ const io = require('socket.io')(http, {
 
 // if the URL is empty, send the index.html
 app.get('/', (req, res) => {
-	res.sendFile(__dirname + "/static/index.html");
+	res.sendFile(__dirname + "/docs/index.html");
 });
 
-// serve files out of the ./static directory
-app.use(express.static('./static'));
+// serve files out of the ./docs directory
+app.use(express.static('./docs'));
 
 // topics that are reserved for the server
 const reserved_topics = {

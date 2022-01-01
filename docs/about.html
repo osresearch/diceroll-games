@@ -126,13 +126,13 @@ establish identity out-of-band.
 
 <h3>Adding new dice sets?</h3>
 You can checkout the <a href="https://github.com/osresearch/diceroll-games/">source code</a>
-and add new dice to the <em>static/dice.json</em> file.  Eventually there
+and add new dice to the <em>docs/dice.json</em> file.  Eventually there
 should be a drag-and-drop way to add new images and sets.
 
 <script>
 function die_replace()
 {
-	const which = Math.floor(Math.random() * 40);
+	const which = Math.floor(Math.random() * 10);
 	const result = Math.floor(Math.random() * 6) + 1;
 
 	const d = document.getElementById("die-" + which);
@@ -142,6 +142,6 @@ function die_replace()
 	d.src = "images/pips/pips-" + result + ".png";
 }
 
-setInterval(die_replace, 100);
+setInterval(die_replace, 300);
 </script>
 </html>

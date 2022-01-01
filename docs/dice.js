@@ -1,7 +1,11 @@
 /*
  * Dice client connected to the other peers via socket.io
+ * The rendezvous server for production deploys runs on
+ * heroku, for localhost it contacts localhost
  */
-const server = document.location.origin;
+const server = document.location.origin.startsWith('http://localhost')
+	? document.location.origin
+	: 'https://diceroll-games.herokuapp.com/';
 
 // If there isn't a room ID, create one and append
 // it to the URL string
