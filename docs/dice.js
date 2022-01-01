@@ -381,7 +381,7 @@ function roll_finalize(sock, which, tag)
 	const sides = BigInt(die.sides);
 	const short_result = Number(result % sides);
 	const image = die.image;
-	const width = 128;
+	const width = 256;
 	const offset = width * short_result;
 
 	//log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
@@ -394,15 +394,17 @@ function roll_finalize(sock, which, tag)
 
 	const r = d.firstChild;
 	const div = document.createElement('div');
-	div.style.width = "128px";
-	div.style.height = "128px";
+	div.style.width = width + "px";
+	div.style.height = width + "px";
 	div.style.overflow = "hidden";
 	div.style.float = "left";
 
 	const img = document.createElement('img');
-	img.height = 128; // width will be set by the div
+	img.height = width; // only set the height; the width will be set by the div
 	img.src = image;
 	img.alt = "Rolled " + short_result;
+
+	// crop out of the die image using negative margin
 	// top,right,bottom,left
 	img.style.margin = "0 0 0 -" + offset + "px";
 	img.style.opacity = 1.0;
