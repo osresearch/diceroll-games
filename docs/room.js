@@ -279,10 +279,20 @@ rx_raw(src,msg)
 		},
 		this.privkey,
 		enc_buf
-	).then((buf) => {
+	).catch((err) => {
+		console.log(src, "GCM ERROR", msg, enc_buf, err);
+		this.error("decrypt error; server meddling?");
+	}).then((buf) => {
 		const msg_str = new TextDecoder('utf-8').decode(buf)
-		const msg = JSON.parse(msg_str);
-		//console.log(peer.id, "decrypted", msg);
+		let msg = '';
+
+		try {
+			msg = JSON.parse(msg_str);
+			//console.log(peer.id, "decrypted", msg);
+		} catch(err) {
+			console.log(err, peer.id, "error decoding", msg_str);
+			return;
+		}
 
 		// no topic == chaffe
 		if (!("topic" in msg))
@@ -291,9 +301,6 @@ rx_raw(src,msg)
 			return;
 
 		return this.handle(msg.topic, peer, ...msg.msg);
-	}).catch((err) => {
-		console.log(src, "GCM ERROR", msg, enc_buf, err);
-		this.error("decrypt error; server meddling?");
 	});
 }
 
