@@ -108,11 +108,11 @@ constructor(server=document.location.origin, room=document.location.hash)
 	});
 
 	// called in the first round of key generation
-	this.sock.on('pubkey', (src,pubkey,counter) => this.rekey_pubkey(src,pubkey,counter))
+	this.sock.on('pubkey', (src,pubkey) => this.rekey_pubkey(src,pubkey))
 	this.sock.on('pubkey2', (src,pubkey) => this.rekey_pubkey2(src,pubkey))
 
 	// called when an encrypted message arrives
-	this.sock.on('message', (src,msg) => this.rx_raw(src,msg));
+	this.sock.on('message', (src,counter,msg) => this.rx_raw(src,counter,msg));
 }
 
 peer_count()
@@ -162,9 +162,6 @@ rekey()
 	// destroy the old private key
 	this.privkey = null;
 
-	// and our counter for AES-GCM
-	this.counter = randomBigInt(12);
-
 	// erase the old pubkey components from each of our peers
 	for(const peer in this.peers)
 		this.peers[peer].pubkey = null;
@@ -178,14 +175,14 @@ rekey()
 	console.log("next/prev=", this.next, this.prev);
 	this.pubkeys_received = 0;
 
-	// send the public part of our group key and our GCM counter
+	// send the public part of our group key
 	const pubkey_str = this.pubkey.toString(16);
-	console.log("pubkey", pubkey_str);
-	this.sock.emit('pubkey', pubkey_str, this.counter.toString(16));
+	console.log("self", "pubkey", pubkey_str);
+	this.sock.emit('pubkey', pubkey_str);
 }
 
 // when we receive a pubkey from a peer
-rekey_pubkey(src,pubkey,counter)
+rekey_pubkey(src,pubkey)
 {
 	if (!(src in this.peers))
 		return this.error("unknown peer");
@@ -195,8 +192,9 @@ rekey_pubkey(src,pubkey,counter)
 		return this.error("already received pubkey");
 
 	peer.pubkey = BigInt("0x" + pubkey);
-	peer.counter = BigInt("0x" + counter);
 	peer.id = words.bigint2words(peer.pubkey, 4);
+
+	console.log(peer.id, "pubkey", pubkey);
 
 	// if this is our predecessor in the ring,
 	// move it to phase 2
@@ -256,33 +254,37 @@ rekey_complete(pubkey)
  * Now that all the peers have a shared secret key, we can use it
  * to establish an encrypted channel. 
  */
-rx_raw(src,msg)
+rx_raw(src,counter,msg)
 {
 	if (!this.privkey)
 		return this.error("encrypted message without privkey");
 	if (!(src in this.peers))
 		return this.error("encrypted message from unknown peer");
 
-	// counter is tracked per peer and used as the iv
-	// it should never be reused since it was a big random value
 	const peer = this.peers[src];
-	const counter = arrayFromBigInt(peer.counter, 16);
-	peer.counter++;
+
+	counter = BigInt("0x" + counter);
+	const counter_buf = arrayFromBigInt(counter, 16);
 
 	// THERE HAS GOT TO BE A BETTER WAY
-	const enc_buf = Uint8Array.from(arrayFromBigInt(BigInt("0x" + msg), Math.floor(msg.length/2 + 0.5)));
+	//const enc_buf = Uint8Array.from(arrayFromBigInt(BigInt("0x" + msg), Math.floor(msg.length/2 + 0.5)));
+	const enc_buf = msg;
 
 	window.crypto.subtle.decrypt(
 		{
 			name: "AES-GCM",
-			iv: Uint8Array.from(counter),
+			iv: Uint8Array.from(counter_buf),
 		},
 		this.privkey,
 		enc_buf
 	).catch((err) => {
 		console.log(src, "GCM ERROR", msg, enc_buf, err);
 		this.error("decrypt error; server meddling?");
+		return null;
 	}).then((buf) => {
+		if (!buf)
+			return;
+
 		const msg_str = new TextDecoder('utf-8').decode(buf)
 		let msg = '';
 
@@ -310,20 +312,23 @@ tx_raw(buf)
 	if (!this.privkey)
 		return this.error("encrypted tx without privkey");
 
-	const counter = arrayFromBigInt(this.counter, 16);
-	this.counter++;
+	const counter = randomBigInt(16);
+	const counter_buf = arrayFromBigInt(counter, 16);
 
 	window.crypto.subtle.encrypt(
 		{
 			name: "AES-GCM",
-			iv: Uint8Array.from(counter),
+			iv: Uint8Array.from(counter_buf),
 		},
 		this.privkey,
 		new TextEncoder().encode(buf)
 	).then((enc) => {
 		// there has to be a better way, but wtf javascript
-		const hex = arrayToBigInt(new Uint8Array(enc)).toString(16);
-		this.sock.emit("message", hex);
+		//const msg_hex = arrayToBigInt(new Uint8Array(enc)).toString(16);
+		const msg_hex = enc;
+
+		const counter_hex = counter.toString(16);
+		this.sock.emit("message", counter_hex, msg_hex);
 	});
 }
 
