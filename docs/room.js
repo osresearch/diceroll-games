@@ -234,6 +234,9 @@ rekey_complete(pubkey)
 	// compute the updated group key
 	const privkey = modExp(pubkey, this.exponent, this.modulus);
 
+	// and the verification phrase for the group key
+	this.key_phrase = words.bigint2words(sha256BigInt(privkey), 4);
+
 	crypto.subtle.importKey(
 		"raw",
 		Uint8Array.from(arrayFromBigInt(privkey)),
@@ -243,7 +246,7 @@ rekey_complete(pubkey)
 	).then((key_encoded) => {
 		this.privkey = key_encoded;
 
-		console.log("private key", privkey.toString(16));
+		console.log("private key", privkey.toString(16), this.peers, this.removed_peers);
 		this.handle('members', this.peers, this.removed_peers);
 		this.removed_peers = {};
 	});
