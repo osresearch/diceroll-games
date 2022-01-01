@@ -99,6 +99,10 @@ body  {
 	color: #888;
 }
 
+.peer-departed {
+	opacity: 0.3;
+}
+
 #roll-button {
 	font-size: 30px;
 	font-family: mono;
@@ -120,6 +124,14 @@ body  {
 	font-size: 0.7em;
 	padding: 5px 20px 5px 20px;
 }
+
+/*
+ * Messages to and from other players
+ */
+.message-public { color: #000; }
+.message-public-self { color: #008; }
+.message-server { color: #800; }
+.message-nick { color: #000; }
 
 
 /*
@@ -184,15 +196,12 @@ body  {
 
 <hr/>
 
-<div id="log-show" onclick='
-	const d = document.getElementById("log");
-	d.style.display = d.style.display ? "" : "none";
-'>Show/hide log</div>
-<div id="log" style='display:none;'></div>
 
-    <form id="chat-form" action="">
-      <input id="chat-input" autocomplete="off" /><button>Send</button>
-    </form>
+<form id="chat-form" action="">
+	<input id="chat-input" autocomplete="off" />
+	<button>Send</button>
+</form>
+
 </body>
 
 <script src="dice.js"></script>

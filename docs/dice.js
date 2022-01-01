@@ -52,9 +52,11 @@ if (invite)
 let room = document.location.hash;
 const sock = new Room(server, room);
 let rolls = {};
-let nick = sock.id;
+const peer_self = {id: sock.id, nick: sock.id};
+const peer_server = {id: server, nick: "server"};
 
 let distribution = [0,0,0,0,0,0];
+let debug = false;
 
 
 // load the dice configurations from the json file
@@ -106,28 +108,17 @@ function dice_set_choose(sel)
 fetch("dice.json").then(r => r.json()).then(data => dice_sets_populate(data));
 
 
-function log_append(src, msg, msg_class="message")
+function log_append(peer, msg, msg_class="message")
 {
-	const log = document.getElementById("log");
-	const e = document.createElement('p');
-	const s = document.createElement('span');
-	s.classList.add("sender");
-	if (src == server)
-		s.classList.add("sender-server");
-	if (src == sock.id)
-		s.classList.add("sender-self");
-	s.innerText = src;
-	e.appendChild(s);
+	console.log(peer.id, msg);
+	if (msg_class == 'debug-msg' && !debug)
+		return;
 
-	e.appendChild(document.createTextNode(" "));
+	const d = document.createElement('div');
+	d.classList.add(msg_class);
+	d.innerText = msg;
 
-	const m = document.createElement('span');
-	m.classList.add(msg_class);
-	m.innerText = msg;
-
-	e.appendChild(m);
-	log.appendChild(e);
-	log.scrollTop = log.scrollHeight;
+	roll_row_create(peer, d);
 }
 
 let initial_name = true;
@@ -135,8 +126,6 @@ let initial_name = true;
 function peer_add(peer)
 {
 	rolls = {}; // always cancel any runs in process
-
-	log_append(server, '+ ' + peer.id, 'message-public');
 
 	// don't add if they already exist
 	if (document.getElementById("peerlist-" + peer.id))
@@ -158,36 +147,40 @@ function peer_add(peer)
 	li.appendChild(n);
 	d.appendChild(li);
 
-	if (peer.id == sock.id)
+	if (peer.id != sock.id)
 	{
-		// this is our own entry
-		n.classList.add('nick-self');
-		n.id = "players-nick-self";
-
-		let editing = () => {};
-
-		if (initial_name)
-		{
-			// add something to help them know to change it
-			const help = document.createElement('span');
-			help.innerText = " Click to change!";
-			help.classList.add("hover-text");
-			help.id = "players-nick-self-help";
-			li.appendChild(help);
-			initial_name = false;
-			n.title = "Click to set your nickname";
-
-			editing = () => {
-				help.parentNode.removeChild(help);
-				n.title = "Your verification code " + peer.id;
-			};
-		}
-
-		make_editable(n, nick_set, editing);
+		log_append(peer, "joined the room", 'peer-joined');
+		return;
 	}
+
+	// this is our own entry
+	n.classList.add('nick-self');
+	n.id = "players-nick-self";
+
+	let editing = () => {};
+
+	if (initial_name)
+	{
+		// add something to help them know to change it
+		const help = document.createElement('span');
+		help.innerText = " Click to change!";
+		help.classList.add("hover-text");
+		help.id = "players-nick-self-help";
+		li.appendChild(help);
+		initial_name = false;
+		n.title = "Click to set your nickname";
+
+		editing = () => {
+			help.parentNode.removeChild(help);
+			n.title = "Your verification code " + peer.id;
+		};
+	}
+
+	make_editable(n, nick_set, editing);
 }
 
-peer_add({id: sock.id, nick: sock.id});
+// add ourselves
+peer_add(peer_self);
 
 /*
  * These are the system level ones that the server sends to us
@@ -195,8 +188,7 @@ peer_add({id: sock.id, nick: sock.id});
 // called when a connection to the server is established
 sock.on('connect', () => {
 	rolls = {};
-	console.log(server, "RECONNECTED");
-	log_append(server, 'Reconnected', 'message-server');
+	log_append(peer_server, 'Reconnected ' + server, 'debug-msg');
 
 	// we can't send any messages until we have the member list,
 	// which means that we've been re-keyed
@@ -209,16 +201,17 @@ sock.on('members', (peers,removed_peers) => {
 	console.log("members", peers);
 
 	// let people know our nick name
-	if (nick && nick != sock.id)
-		sock.emit('nick', nick);
+	if (peer_self.nick && peer_self.nick != peer_self.id)
+		sock.emit('nick', peer_self.nick);
 
 	// any removed peers should be grayed out
 	for(const src in removed_peers)
 	{
 		let peer = removed_peers[src];
-		console.log(peer.id, "removed");
+		log_append(peer, "departed the room", 'peer-left');
+
 		for(let d of document.querySelectorAll('.peer-' + peer.id))
-			d.style.opacity = 0.1;
+			d.classList.add("peer-departed");
 	}
 
 	// set a default nick name for each of the peers
@@ -230,17 +223,18 @@ sock.on('members', (peers,removed_peers) => {
 		peer_add(peers[src]);
 
 		for(let d of document.querySelectorAll('.peer-' + peer.id))
-			d.style.opacity = 1.0; // if they come back
+			d.classList.remove("peer-departed");
 	}
 
+	log_append(peer_server, 'Group verification phrase ' + sock.key_phrase, 'message-server');
 });
 
 
 function nick_set(new_nick)
 {
-	nick = new_nick;
-	console.log("my nick is ", nick);
-	sock.emit('nick', nick);
+	peer_self.nick = new_nick;
+	console.log("my nick is ", peer_self.nick);
+	sock.emit('nick', peer_self.nick);
 
 	for(let d of document.querySelectorAll('.peer-' + sock.id))
 		d.innerText = new_nick;
@@ -248,9 +242,10 @@ function nick_set(new_nick)
 
 // update the nick display for a peer
 sock.on('nick', (peer,their_nick) => {
+	const old_nick = peer.nick;
 	peer.nick = their_nick;
 	console.log(peer.id, "now known as", their_nick);
-	log_append(peer.id, "nick " + their_nick);
+	log_append(peer, 'formerly known as ' + old_nick, 'message-nick');
 
 	for(let d of document.querySelectorAll('.peer-' + peer.id))
 		d.innerText = their_nick;
@@ -289,7 +284,7 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 
 	if (!(tag_str in rolls))
 	{
-		log_append(sock.id, short_tag + " NEW ROLL " + which);
+		log_append(peer_self, short_tag + " NEW ROLL " + which, 'debug-msg');
 		rolls[tag_str] = {}
 	}
 
@@ -303,7 +298,7 @@ function roll_commit(sock, which=0, tag=randomBigInt())
 
 	rolls[tag_str][sock.id] = my_roll;
 	const hash_str = my_hash.toString(16);
-	log_append(sock.id, short_tag + " hashed " + hash_str, 'message-public');
+	log_append(peer_self, short_tag + " hashed " + hash_str, 'debug-msg');
 
 	sock.emit('commit', {
 		"tag": tag_str,
@@ -321,7 +316,7 @@ function roll_reveal(sock, which, tag)
 	// all peers have committed! time to reveal
 	const short_tag = tag.substr(0,16);
 	const my_value = rolls[tag][sock.id].value.toString(16);
-	log_append(sock.id, short_tag + " reveal " + my_value);
+	log_append(peer_self, short_tag + " reveal " + my_value, 'debug-msg');
 
 	sock.emit('reveal', {
 		"tag": tag,
@@ -363,7 +358,7 @@ function roll_finalize(sock, which, tag)
 	const short_result = Number(result % choices);
 	const output = dice_set[which][short_result];
 
-	log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
+	//log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
 	console.log("RESULT", tag, result, short_result, output);
 
 	// create a new output die for this roll
@@ -389,11 +384,9 @@ function roll_finalize(sock, which, tag)
 }
 
 // called when a peer has initiated a new roll
-// which also will update the die with the ones
-// from the roller
-function roll_row_create(peer, new_die)
+// or a chat message
+function roll_row_create(peer, children)
 {
-	dice_set = new_die;
 	const r = document.getElementById('rolls');
 	if (!r)
 		return;
@@ -417,8 +410,19 @@ function roll_row_create(peer, new_die)
 
 	const old = r.firstChild;
 	if (old)
-		old.style.opacity = 0.3;
+		old.style.opacity = 0.5;
 	r.insertBefore(d, r.firstChild);
+
+	if (children)
+		d.appendChild(children);
+
+	return d;
+}
+
+function roll_new_set(peer, new_die)
+{
+	dice_set = new_die;
+	roll_row_create(peer);
 }
 
 function roll_all()
@@ -429,14 +433,14 @@ function roll_all()
 		return;
 	}
 
-	roll_row_create({id: sock.id, nick: nick}, dice_set);
+	roll_new_set(peer_self, dice_set);
 	sock.emit('roll', dice_set);
 
 	for(let i = 0 ; i < dice_set.length ; i++)
 		roll_commit(sock,i);
 }
 
-sock.on('roll', roll_row_create);
+sock.on('roll', roll_new_set);
 
 // called when another peer has initiated a dice roll or
 // is responding to a dice roll by another peer.
@@ -445,7 +449,7 @@ sock.on('commit', (peer,msg) => {
 
 	if (!("tag" in msg && "which" in msg && "hash" in msg))
 	{
-		log_append(peer.id, "bad message" + msg, 'message-server');
+		log_append(peer, "bad message" + msg, 'debug-msg');
 		return;
 	}
 
@@ -456,7 +460,7 @@ sock.on('commit', (peer,msg) => {
 
 	if (!(which in dice_set))
 	{
-		log_append(peer.id, short_tag + " no such die " + which, 'message-server');
+		log_append(peer, short_tag + " no such die " + which, 'debug-msg');
 		return;
 	}
 
@@ -464,7 +468,7 @@ sock.on('commit', (peer,msg) => {
 	{
 		// first time we've seen this tag, so let's
 		// create the bookkeeping for it
-		log_append(peer.id, short_tag + " NEW ROLL");
+		//log_append(peer, short_tag + " NEW ROLL");
 		rolls[tag] = {}
 
 		// and add our roll and commitment to it,
@@ -479,7 +483,7 @@ sock.on('commit', (peer,msg) => {
 	if (peer.id in roll)
 	{
 		console.log("duplicate?", peer.id, msg, roll);
-		log_append(peer.id, short_tag + " already rolled?", 'message-server');
+		log_append(peer, short_tag + " already rolled?", 'message-server');
 		return;
 	}
 
@@ -487,13 +491,13 @@ sock.on('commit', (peer,msg) => {
 	const expected_which = roll[sock.id].which;
 	if (which != expected_which)
 	{
-		log_append(peer.id, short_tag + " wrong dice? expected " + expected_which + " got " + which, 'message-server');
+		log_append(peer, short_tag + " wrong dice? expected " + expected_which + " got " + which, 'message-server');
 		return;
 	}
 
 	roll[peer.id] = { hash: BigInt("0x" + hash) };
 
-	log_append(peer.id, short_tag + " hashed " + hash , 'message-public');
+	log_append(peer, short_tag + " hashed " + hash , 'debug-msg');
 
 	// if any peers have not yet commited to this tag, then we're done
 	for (let peer in sock.peers)
@@ -508,17 +512,18 @@ sock.on('reveal', (peer,msg) => {
 	const tag = msg.tag;
 	const which = msg.which;
 	const value = msg.value;
+	const short_tag = tag.substr(0,16);
 
 	if (!(tag in rolls))
 	{
-		log_append(peer.id, tag.substr(0,16) + " not in rolls?" + msg, 'message-server');
+		log_append(peer, short_tag + " not in rolls?" + msg, 'debug-msg');
 		return;
 	}
 
 	const roll = rolls[tag];
 	if (!(peer.id in roll))
 	{
-		log_append(peer.id, tag.substr(0,16) + " did not commit?" + msg, 'message-server');
+		log_append(peer, short_tag + " did not commit?" + msg, 'debug-msg');
 		return;
 	}
 
@@ -526,7 +531,7 @@ sock.on('reveal', (peer,msg) => {
 
 	if ("value" in their_roll)
 	{
-		log_append(peer.id, tag.substr(0,16) + " double reveal?" + msg, 'message-server');
+		log_append(peer, short_tag + " double reveal?" + msg, 'debug-msg');
 		return;
 	}
 
@@ -536,13 +541,13 @@ sock.on('reveal', (peer,msg) => {
 	if (expected_hash != their_roll.hash)
 	{
 		console.log(peer.id, "BAD HASH. Expected != Recieved", expected_hash.toString(16), their_roll.hash.toString(16));
-		log_append(peer.id, tag.substr(0,16) + " HASH CHEAT", 'message-server');
+		log_append(peer, short_tag + " HASH CHEAT", 'message-server');
 		return;
 	}
 
 	// looks good! accept it
 	their_roll.value = their_value;
-	log_append(peer.id, tag.substr(0,16) + " reveal " + value);
+	log_append(peer, short_tag + " reveal " + value, 'debug-msg');
 
 	for (let peer in sock.peers)
 	{
@@ -586,7 +591,11 @@ chat_form.addEventListener('submit', function(e) {
 		// commands
 		const words = msg.substr(1).split(" ");
 		const cmd = words.shift();
-		log_append(sock.id, 'UNKNOWN COMMAND ' + cmd);
+		if (cmd == 'debug')
+		{
+			debug = !debug;
+		} else
+			log_append(peer_self, 'UNKNOWN COMMAND ' + msg);
 	} else
 	if (msg[0] == '@')
 	{
@@ -598,7 +607,7 @@ chat_form.addEventListener('submit', function(e) {
 	} else {
 		// public message to everyone
 		sock.emit('chat', msg);
-		log_append(sock.id, msg, 'message-public');
+		log_append(peer_self, msg, 'message-public-self');
 	}
 
 	input.value = '';
@@ -606,5 +615,6 @@ chat_form.addEventListener('submit', function(e) {
 
 sock.on('chat', (peer,msg) => {
 	console.log(peer.id, "chat", msg);
+	log_append(peer, msg, 'message-public');
 });
 
