@@ -11,6 +11,17 @@
  * - Compute partial group keys in a ring until everyone has all parts
  * - Derive shared secret
  */
+
+"use strict"
+/*
+ * Turn the ECDSA public key x and y coordinates into a hash
+ */
+function jwk2id(jwk)
+{
+	let id = jwk.x + "|" + jwk.y;
+	return BigInt("0x" + sha256.sha256hex(id.split('')));
+}
+
 class Room
 {
 rekeyed() {}
@@ -31,9 +42,13 @@ constructor(server=document.location.origin, room=document.location.hash)
 	this.handlers = {};
 
 	// generate our private group key component
+	// which is used to derive the shared encryption key
 	this.exponent = randomBigInt(64);
 	this.pubkey = modExp(this.base, this.exponent, this.modulus);
-	this.id = words.bigint2words(this.pubkey, 4);
+
+	// and our public identity key, which will be used to sign
+	// messages from us.
+	this.id_create();
 
 	// called when a connection to the server is established
 	this.sock.on('connect', () => {
@@ -108,11 +123,34 @@ constructor(server=document.location.origin, room=document.location.hash)
 	});
 
 	// called in the first round of key generation
-	this.sock.on('pubkey', (src,pubkey) => this.rekey_pubkey(src,pubkey))
+	this.sock.on('pubkey', (src,pubkey,id_public) => this.rekey_pubkey(src,pubkey,id_public))
 	this.sock.on('pubkey2', (src,pubkey) => this.rekey_pubkey2(src,pubkey))
 
 	// called when an encrypted message arrives
-	this.sock.on('message', (src,counter,msg) => this.rx_raw(src,counter,msg));
+	this.sock.on('message', (src,counter,msg,sig) => this.rx_raw(src,counter,msg,sig));
+}
+
+id_create()
+{
+	this.key_param = {
+		name: "ECDSA",
+		namedCurve: "P-384",
+		hash: { name: "SHA-256" },
+	};
+
+	window.crypto.subtle.generateKey(
+		this.key_param,
+		true,
+		["sign", "verify"]
+	).then((k) => {
+		console.log("Key created", k);
+		this.id_private = k.privateKey;
+		return window.crypto.subtle.exportKey('jwk', k.publicKey);
+	}).then((jwk) => {
+		this.id_public = jwk;
+		this.id = words.bigint2words(jwk2id(jwk), 4);
+		console.log("identity", this.id);
+	});
 }
 
 peer_count()
@@ -177,12 +215,12 @@ rekey()
 
 	// send the public part of our group key
 	const pubkey_str = this.pubkey.toString(16);
-	console.log("self", "pubkey", pubkey_str);
-	this.sock.emit('pubkey', pubkey_str);
+	console.log("self", "pubkey", pubkey_str, this.id);
+	this.sock.emit('pubkey', pubkey_str, this.id_public);
 }
 
 // when we receive a pubkey from a peer
-rekey_pubkey(src,pubkey)
+rekey_pubkey(src,pubkey,id_public)
 {
 	if (!(src in this.peers))
 		return this.error("unknown peer");
@@ -191,8 +229,19 @@ rekey_pubkey(src,pubkey)
 	if (peer.pubkey != null)
 		return this.error("already received pubkey");
 
+	window.crypto.subtle.importKey(
+		'jwk',
+		id_public,
+		this.key_param,
+		true,
+		[ 'verify' ]
+	).then((imported_public) => {
+		peer.id_public = imported_public;
+	});
+
+	peer.id = words.bigint2words(jwk2id(id_public), 4);
+
 	peer.pubkey = BigInt("0x" + pubkey);
-	peer.id = words.bigint2words(peer.pubkey, 4);
 
 	console.log(peer.id, "pubkey", pubkey);
 
@@ -211,6 +260,7 @@ rekey_pubkey2(src, pubkey)
 
 	// if we have received the correct number of pubkey2 messages
 	// (one partial per peer), then we can finalize the rekey
+	// todo: verify that we have received from each peer
 	if (++this.pubkeys_received >= this.peer_count())
 		return this.rekey_complete(pubkey);
 
@@ -249,15 +299,22 @@ rekey_complete(pubkey)
 		console.log("private key", privkey.toString(16), this.peers, this.removed_peers);
 		this.handle('members', this.peers, this.removed_peers);
 		this.removed_peers = {};
+
+		// let the others know we have the same key
+		// (the actual contents of this message don't matter,
+		// since it is encrypted with the key, so this is mostly
+		// to ensure that everyone can decrypt our messages)
+		this.emit('group-verify', this.key_phrase);
 	});
 }
 
 
 /*
- * Now that all the peers have a shared secret key, we can use it
- * to establish an encrypted channel. 
+ * Now that all the peers have a shared secret key, we use it
+ * to establish an encrypted channel.  Additionally all messages
+ * from the peers must be signed with their public key
  */
-rx_raw(src,counter,msg)
+rx_raw(src,counter,msg,signature)
 {
 	if (!this.privkey)
 		return this.error("encrypted message without privkey");
@@ -272,6 +329,7 @@ rx_raw(src,counter,msg)
 	// THERE HAS GOT TO BE A BETTER WAY
 	//const enc_buf = Uint8Array.from(arrayFromBigInt(BigInt("0x" + msg), Math.floor(msg.length/2 + 0.5)));
 	const enc_buf = msg;
+	let clear_buf;
 
 	window.crypto.subtle.decrypt(
 		{
@@ -282,13 +340,26 @@ rx_raw(src,counter,msg)
 		enc_buf
 	).catch((err) => {
 		console.log(src, "GCM ERROR", msg, enc_buf, err);
-		this.error("decrypt error; server meddling?");
+		this.handle("decryption-failure", peer);
 		return null;
 	}).then((buf) => {
-		if (!buf)
+		clear_buf = buf;
+		return window.crypto.subtle.verify(
+			this.key_param,
+			peer.id_public,
+			signature,
+			buf
+		);
+	}).then((valid) => {
+		if (!clear_buf)
 			return;
+		if (!valid)
+		{
+			console.log(peer.id, "invalid signature!");
+			this.handle("signature-failure", peer, clear_buf, signature)
+		}
 
-		const msg_str = new TextDecoder('utf-8').decode(buf)
+		const msg_str = new TextDecoder('utf-8').decode(clear_buf)
 		let msg = '';
 
 		try {
@@ -317,21 +388,28 @@ tx_raw(buf)
 
 	const counter = randomBigInt(16);
 	const counter_buf = arrayFromBigInt(counter, 16);
+	const encoded_buf = new TextEncoder().encode(buf);
+	let signature;
 
-	window.crypto.subtle.encrypt(
-		{
-			name: "AES-GCM",
-			iv: Uint8Array.from(counter_buf),
-		},
-		this.privkey,
-		new TextEncoder().encode(buf)
-	).then((enc) => {
+	window.crypto.subtle.sign(
+		this.key_param,
+		this.id_private,
+		encoded_buf
+	).then((signed_buf) => {
+		signature = signed_buf;
+		return window.crypto.subtle.encrypt(
+			{
+				name: "AES-GCM",
+				iv: Uint8Array.from(counter_buf),
+			},
+			this.privkey,
+			encoded_buf
+		);
+	}).then((encrypted_buf) => {
 		// there has to be a better way, but wtf javascript
 		//const msg_hex = arrayToBigInt(new Uint8Array(enc)).toString(16);
-		const msg_hex = enc;
-
 		const counter_hex = counter.toString(16);
-		this.sock.emit("message", counter_hex, msg_hex);
+		this.sock.emit("message", counter_hex, encrypted_buf, signature);
 	});
 }
 

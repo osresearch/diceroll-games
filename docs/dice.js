@@ -3,6 +3,7 @@
  * The rendezvous server for production deploys runs on
  * heroku, for localhost it contacts localhost
  */
+"use strict";
 const server = document.location.origin.startsWith('http://localhost')
 	? document.location.origin
 	: 'https://diceroll-games.herokuapp.com/';
@@ -52,7 +53,7 @@ if (invite)
 let room = document.location.hash;
 const sock = new Room(server, room);
 let rolls = {};
-const peer_self = {id: sock.id, nick: sock.id};
+const peer_self = {id: 0, nick: "???"};
 const peer_server = {id: server, nick: "server"};
 
 let distribution = [0,0,0,0,0,0];
@@ -179,9 +180,6 @@ function peer_add(peer)
 	make_editable(n, nick_set, editing);
 }
 
-// add ourselves
-peer_add(peer_self);
-
 /*
  * These are the system level ones that the server sends to us
  */
@@ -192,6 +190,13 @@ sock.on('connect', () => {
 
 	// we can't send any messages until we have the member list,
 	// which means that we've been re-keyed
+
+	// add ourselves if we haven't already
+	peer_self.id = sock.id;
+	if (peer_self.nick == "???")
+		peer_self.nick = sock.id;
+	peer_add(peer_self);
+
 });
 
 // room sends this message when a new room key has been
@@ -226,9 +231,27 @@ sock.on('members', (peers,removed_peers) => {
 			d.classList.remove("peer-departed");
 	}
 
-	log_append(peer_server, 'Group verification phrase ' + sock.key_phrase, 'message-server');
+	if (sock.peer_count() > 0)
+		log_append(peer_server, 'Group verification phrase ' + sock.key_phrase, 'message-server');
 });
 
+sock.on('group-verify', (peer,their_phrase) => {
+	if (their_phrase != sock.key_phrase)
+	{
+		log_append(peer, "GROUP MIGHT BE COMPROMISED: " + their_phrase + "!=" + this.key_phrase, 'message-server');
+	} else {
+		log_append(peer, "verified group phrase", 'debug-msg');
+		// todo: did we get these from everyone?
+	}
+});
+
+sock.on('decryption-failure', (peer,msg) => {
+	log_append(peer, "DECRYPTION FAILURE", 'message-server');
+});
+sock.on('signature-failure', (peer,msg) => {
+	log_append(peer, "SIGNATURE FAILURE", 'message-server');
+	console.log(peer.id, msg);
+});
 
 function nick_set(new_nick)
 {
@@ -390,7 +413,6 @@ function roll_row_create(peer, children)
 	const r = document.getElementById('rolls');
 	if (!r)
 		return;
-	console.log(peer.id, "initiated new roll");
 	const src_div = document.createElement('span');
 	src_div.innerText = peer.nick;
 	src_div.classList.add("peer-" + peer.id);
@@ -422,6 +444,7 @@ function roll_row_create(peer, children)
 function roll_new_set(peer, new_die)
 {
 	dice_set = new_die;
+	console.log(peer.id, "initiated new roll");
 	roll_row_create(peer);
 }
 
