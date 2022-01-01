@@ -10,7 +10,11 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
 	cors: {
-		origin: [ "https://direroll.games", "http://localhost:9999" ],
+		origin: [
+			"https://diceroll.games",
+			"http://localhost:9999",
+			"http://127.0.0.1:9999",
+		],
 		methods: ["GET", "POST"],
 	},
 });
