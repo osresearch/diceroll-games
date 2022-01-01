@@ -121,6 +121,40 @@ body  {
 	padding: 5px 20px 5px 20px;
 }
 
+
+/*
+ * Chat box
+ */
+#chat-form {
+	background: rgba(0, 0, 0, 0.15);
+	padding: 0.25rem;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	height: 3rem;
+	box-sizing: border-box;
+	backdrop-filter: blur(10px);
+}
+#chat-input {
+	border: none;
+	padding: 0 1rem;
+	flex-grow: 1;
+	border-radius: 2rem;
+	margin: 0.25rem;
+	font-family: mono;
+}
+#chat-input:focus { outline: none; }
+#chat-form > button {
+	background: #333;
+	border: none;
+	padding: 0 1rem;
+	margin: 0.25rem;
+	border-radius: 3px;
+	outline: none;
+	color: #fff;
+}
 </style>
 </head>
 <body>
@@ -155,6 +189,10 @@ body  {
 	d.style.display = d.style.display ? "" : "none";
 '>Show/hide log</div>
 <div id="log" style='display:none;'></div>
+
+    <form id="chat-form" action="">
+      <input id="chat-input" autocomplete="off" /><button>Send</button>
+    </form>
 </body>
 
 <script src="dice.js"></script>

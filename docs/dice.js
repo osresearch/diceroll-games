@@ -567,3 +567,44 @@ function randtest(n)
 	}
 	return dist;
 }
+
+
+/*
+ * Chat box stuff
+ */
+const chat_form = document.getElementById('chat-form');
+
+chat_form.addEventListener('submit', function(e) {
+	const input = document.getElementById('chat-input');
+	e.preventDefault();
+	let msg = input.value;
+	if (!msg)
+		return;
+
+	if (msg[0] == '/')
+	{
+		// commands
+		const words = msg.substr(1).split(" ");
+		const cmd = words.shift();
+		log_append(sock.id, 'UNKNOWN COMMAND ' + cmd);
+	} else
+	if (msg[0] == '@')
+	{
+		// private message to named user
+		//const words = msg.substr(1).split(" ");
+		//const dest = words.shift();
+		//sock.emit('to', dest, 'direct', words.join(" "));
+		//log_append(sock.id, msg, 'message-private');
+	} else {
+		// public message to everyone
+		sock.emit('chat', msg);
+		log_append(sock.id, msg, 'message-public');
+	}
+
+	input.value = '';
+});
+
+sock.on('chat', (peer,msg) => {
+	console.log(peer.id, "chat", msg);
+});
+
