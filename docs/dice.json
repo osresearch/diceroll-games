@@ -247,7 +247,7 @@
 	"coin-flip": ["d2", "d2", "d2", "d2", "d2", "d2"],
 	"eightball": ["eightball"],
 	"pizza": ["pizza-meat", "pizza-veggie", "pizza-veggie"],
-	"invest": ["invest-actions", "invest-stocks"],
+	"invest": ["invest-actions", "invest-stocks", "invest-actions", "invest-stocks", "invest-actions", "invest-stocks"],
 	"estimate": ["months", "days"],
 	"roads&trains": ["r&t", "r&t", "r&t", "r&t-cross"],
 	"roads&trains&water": ["r&t", "r&t", "r&t", "r&t-cross", "r&t-water", "r&t-water"]
