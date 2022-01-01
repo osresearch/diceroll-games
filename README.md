@@ -1,4 +1,4 @@
-![header image with some dice rolls](docs/images/header.jpg)
+![header image with some dice rolls](https://repository-images.githubusercontent.com/442602155/ee86bfd0-2457-49c5-9d8d-8c485296a75b)
 
 # multiparty cryptographic dice rolling server
 
