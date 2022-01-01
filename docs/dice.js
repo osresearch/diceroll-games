@@ -377,12 +377,15 @@ function roll_finalize(sock, which, tag)
 	// hash the result to mix it a bit more
 	result = sha256BigInt(result);
 
-	const choices = BigInt(dice_set[which].length);
-	const short_result = Number(result % choices);
-	const output = dice_set[which][short_result];
+	const die = dice_set[which];
+	const sides = BigInt(die.sides);
+	const short_result = Number(result % sides);
+	const image = die.image;
+	const width = 128;
+	const offset = width * short_result;
 
 	//log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
-	console.log("RESULT", tag, result, short_result, output);
+	console.log("RESULT", tag, result, short_result, image);
 
 	// create a new output die for this roll
 	const d = document.getElementById("rolls");
@@ -390,14 +393,24 @@ function roll_finalize(sock, which, tag)
 		return;
 
 	const r = d.firstChild;
+	const div = document.createElement('div');
+	div.style.width = "128px";
+	div.style.height = "128px";
+	div.style.overflow = "hidden";
+	div.style.float = "left";
+
 	const img = document.createElement('img');
-	img.width = 128;
-	img.height = 128;
-	img.src = output;
-	img.alt = output;
+	img.height = 128; // width will be set by the div
+	img.src = image;
+	img.alt = "Rolled " + short_result;
+	// top,right,bottom,left
+	img.style.margin = "0 0 0 -" + offset + "px";
 	img.style.opacity = 1.0;
+	img.style.top = "0px";
+	img.style.left = offset + "px";
 	img.onclick = () => { img.style.opacity = img.style.opacity > 0.5 ? 0.25 : 1.0 };
-	r.appendChild(img);
+	div.appendChild(img);
+	r.appendChild(div);
 
 /*
 	// update the distribution
@@ -429,6 +442,7 @@ function roll_row_create(peer, children)
 
 	const d = document.createElement('div');
 	d.appendChild(orow);
+	d.style.clear = "both";
 
 	const old = r.firstChild;
 	if (old)

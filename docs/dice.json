@@ -1,239 +1,81 @@
 {
 "dice":{
-	"d2": [
-		"images/pips/pips-0.png",
-		"images/pips/pips-10.png"
-	],
-	"d4": [
-		"images/d4/d4-1.png",
-		"images/d4/d4-2.png",
-		"images/d4/d4-3.png",
-		"images/d4/d4-4.png",
-		"images/d4/d4-5.png",
-		"images/d4/d4-6.png",
-		"images/d4/d4-7.png",
-		"images/d4/d4-8.png",
-		"images/d4/d4-9.png",
-		"images/d4/d4-10.png",
-		"images/d4/d4-11.png",
-		"images/d4/d4-12.png"
-	],
-	"d6": [
-		"images/pips/pips-1.png",
-		"images/pips/pips-2.png",
-		"images/pips/pips-3.png",
-		"images/pips/pips-4.png",
-		"images/pips/pips-5.png",
-		"images/pips/pips-6.png"
-	],
-	"d8": [
-		"images/d20/d20-1.png",
-		"images/d20/d20-2.png",
-		"images/d20/d20-3.png",
-		"images/d20/d20-4.png",
-		"images/d20/d20-5.png",
-		"images/d20/d20-6.png",
-		"images/d20/d20-7.png",
-		"images/d20/d20-8.png"
-	],
-	"d10": [
-		"images/d10/d10-0.png",
-		"images/d10/d10-1.png",
-		"images/d10/d10-2.png",
-		"images/d10/d10-3.png",
-		"images/d10/d10-4.png",
-		"images/d10/d10-5.png",
-		"images/d10/d10-6.png",
-		"images/d10/d10-7.png",
-		"images/d10/d10-8.png",
-		"images/d10/d10-9.png"
-	],
-	"d10-tens": [
-		"images/d10/d10-00.png",
-		"images/d10/d10-10.png",
-		"images/d10/d10-20.png",
-		"images/d10/d10-30.png",
-		"images/d10/d10-40.png",
-		"images/d10/d10-50.png",
-		"images/d10/d10-60.png",
-		"images/d10/d10-70.png",
-		"images/d10/d10-80.png",
-		"images/d10/d10-90.png"
-	],
-	"d12-1": [
-		"images/d12/d12-1.png",
-		"images/d12/d12-2.png",
-		"images/d12/d12-3.png",
-		"images/d12/d12-4.png",
-		"images/d12/d12-5.png",
-		"images/d12/d12-6.png",
-		"images/d12/d12-7.png",
-		"images/d12/d12-8.png",
-		"images/d12/d12-9.png",
-		"images/d12/d12-10.png",
-		"images/d12/d12-11.png",
-		"images/d12/d12-12.png"
-	],
-	"d12-2": [
-		"images/d12/d12-13.png",
-		"images/d12/d12-14.png",
-		"images/d12/d12-15.png",
-		"images/d12/d12-16.png",
-		"images/d12/d12-17.png",
-		"images/d12/d12-18.png",
-		"images/d12/d12-19.png",
-		"images/d12/d12-21.png",
-		"images/d12/d12-22.png",
-		"images/d12/d12-23.png",
-		"images/d12/d12-24.png"
-	],
-	"d20": [
-		"images/d20/d20-1.png",
-		"images/d20/d20-2.png",
-		"images/d20/d20-3.png",
-		"images/d20/d20-4.png",
-		"images/d20/d20-5.png",
-		"images/d20/d20-6.png",
-		"images/d20/d20-7.png",
-		"images/d20/d20-8.png",
-		"images/d20/d20-9.png",
-		"images/d20/d20-10.png",
-		"images/d20/d20-11.png",
-		"images/d20/d20-12.png",
-		"images/d20/d20-13.png",
-		"images/d20/d20-14.png",
-		"images/d20/d20-15.png",
-		"images/d20/d20-16.png",
-		"images/d20/d20-17.png",
-		"images/d20/d20-18.png",
-		"images/d20/d20-19.png",
-		"images/d20/d20-20.png"
-	],
-	"days": [
-		"images/d20/d20-1.png",
-		"images/d20/d20-2.png",
-		"images/d20/d20-3.png",
-		"images/d20/d20-4.png",
-		"images/d20/d20-5.png",
-		"images/d20/d20-6.png",
-		"images/d20/d20-7.png",
-		"images/d20/d20-8.png",
-		"images/d20/d20-9.png",
-		"images/d20/d20-10.png",
-		"images/d20/d20-11.png",
-		"images/d20/d20-12.png",
-		"images/d20/d20-13.png",
-		"images/d20/d20-14.png",
-		"images/d20/d20-15.png",
-		"images/d20/d20-16.png",
-		"images/d20/d20-17.png",
-		"images/d20/d20-18.png",
-		"images/d20/d20-19.png",
-		"images/d20/d20-20.png",
-		"images/d20/d20-21.png",
-		"images/d20/d20-22.png",
-		"images/d20/d20-23.png",
-		"images/d20/d20-24.png",
-		"images/d20/d20-25.png",
-		"images/d20/d20-26.png",
-		"images/d20/d20-27.png",
-		"images/d20/d20-28.png",
-		"images/d20/d20-29.png",
-		"images/d20/d20-30.png",
-		"images/d20/d20-31.png",
-		"images/d20/d20-0.png",
-		"images/d20/d20-question.png",
-		"images/d20/d20-exclaim.png"
-	],
-	"eightball": [
-		"images/eightball/eightball-1.png",
-		"images/eightball/eightball-2.png",
-		"images/eightball/eightball-3.png",
-		"images/eightball/eightball-4.png",
-		"images/eightball/eightball-5.png",
-		"images/eightball/eightball-6.png",
-		"images/eightball/eightball-7.png",
-		"images/eightball/eightball-8.png",
-		"images/eightball/eightball-9.png",
-		"images/eightball/eightball-10.png",
-		"images/eightball/eightball-11.png",
-		"images/eightball/eightball-12.png",
-		"images/eightball/eightball-13.png",
-		"images/eightball/eightball-14.png",
-		"images/eightball/eightball-15.png",
-		"images/eightball/eightball-16.png",
-		"images/eightball/eightball-17.png",
-		"images/eightball/eightball-18.png",
-		"images/eightball/eightball-19.png",
-		"images/eightball/eightball-20.png",
-		"images/eightball/eightball-21.png"
-	],
-	"pizza-meat": [
-		"images/misc/pepperoni.png",
-		"images/misc/supreme.png",
-		"images/misc/anchovies.png",
-		"images/misc/chickenwings.png",
-		"images/misc/tofu.png",
-		"images/misc/ham.png"
-	],
-	"pizza-veggie": [
-		"images/misc/cheese.png",
-		"images/misc/onion.png",
-		"images/misc/anchovies.png",
-		"images/misc/mushrooms.png",
-		"images/misc/pineapple.png",
-		"images/misc/rocket.png"
-	],
-	"invest-actions": [
-		"images/misc/buy.png",
-		"images/misc/hold.png",
-		"images/misc/sell.png",
-		"images/misc/pump.png",
-		"images/misc/dump.png",
-		"images/misc/short.png"
-	],
-	"invest-stocks": [
-		"images/misc/dollar.png",
-		"images/misc/euro.png",
-		"images/misc/aapl.png",
-		"images/misc/tsla.png",
-		"images/misc/doge.png",
-		"images/misc/btc.png"
-	],
-	"months": [
-		"images/misc/jan.png",
-		"images/misc/feb.png",
-		"images/misc/mar.png",
-		"images/misc/may.png",
-		"images/misc/jun.png",
-		"images/misc/jul.png",
-		"images/misc/aug.png",
-		"images/misc/sep.png",
-		"images/misc/oct.png",
-		"images/misc/nov.png",
-		"images/misc/dec.png"
-	],
-	"r&t": [
-		"images/roads/die-rs.png",
-		"images/roads/die-rt.png",
-		"images/roads/die-rc.png",
-		"images/roads/die-ts.png",
-		"images/roads/die-tt.png",
-		"images/roads/die-tc.png"
-	],
-	"r&t-cross": [
-		"images/roads/die-xs.png",
-		"images/roads/die-xx.png",
-		"images/roads/die-xc.png"
-	],
-	"r&t-water": [
-		"images/roads/die-p1.png",
-		"images/roads/die-p2.png",
-		"images/roads/die-p3.png",
-		"images/roads/die-l1.png",
-		"images/roads/die-l2.png",
-		"images/roads/die-l3.png"
-	]
+	"d2": {
+		"image": "images/coin.png",
+		"sides": 2
+	},
+	"d4": {
+		"image": "images/d4.png",
+		"sides": 12
+	},
+	"d6": {
+		"image": "images/d6.png",
+		"sides": 6
+	},
+	"d8": {
+		"image": "images/d8.png",
+		"sides": 8
+	},
+	"d10": {
+		"image": "images/d10.png",
+		"sides": 10
+	},
+	"d10-tens": {
+		"image": "images/d10-tens.png",
+		"sides": 10
+	},
+	"d12-1": {
+		"image": "images/d12-1.png",
+		"sides": 12
+	},
+	"d12-2": {
+		"image": "images/d12-2.png",
+		"sides": 12
+	},
+	"d20": {
+		"image": "images/d20.png",
+		"sides": 12
+	},
+	"days": {
+		"image": "images/days.png",
+		"sides": 34
+	},
+	"eightball": {
+		"image": "images/eightball.png",
+		"sides": 21
+	},
+	"pizza-meat": {
+		"image": "images/pizza-meats.png",
+		"sides": 6
+	},
+	"pizza-veggie": {
+		"image": "images/pizza-veggies.png",
+		"sides": 7
+	},
+	"invest-actions": {
+		"image": "images/invest-actions.png",
+		"sides": 6
+	},
+	"invest-stocks": {
+		"image": "images/invest-assets.png",
+		"sides": 6
+	},
+	"months": {
+		"image": "images/months.png",
+		"sides": 12
+	},
+	"r&t": {
+		"image": "images/roads-rt.png",
+		"sides": 6
+	},
+	"r&t-cross": {
+		"image": "images/roads-cross.png",
+		"sides": 6
+	},
+	"r&t-water": {
+		"image": "images/roads-water.png",
+		"sides": 6
+	}
 },
 "sets": {
 	"3d6": ["d6", "d6", "d6"],
