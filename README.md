@@ -29,11 +29,14 @@ Hit `Roll the dice!` and hope for the best!
 
 ![die 3](docs/images/pips/pips-3.png)
 
-Currently running on a home server with an nginx front end
-to do SSL termination for https://diceroll.games/
+The static pages in the `docs/` directory are hosted via github pages
+at https://diceroll.games/ and and a free Heroku dyno is 
+running the rendezvous server at https://diceroll-games.herokuapp.com
 
 Since it uses the `crypto` API in the webbrowser, it must
-be loaded from `localhost` or over `https`.
+be loaded from `localhost` or over `https`.  When loaded from
+localhost, the local npm process will be used for rendezvous so
+that server changes can be tested without deployment.
 
 ## Adding dice
 
