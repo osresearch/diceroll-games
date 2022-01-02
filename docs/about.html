@@ -117,12 +117,36 @@ key.  If the four words don't match, then something has tried to MITM
 the group key establishment.
 
 <h2>Now can we trust the server?</h2>
-The server is never trusted, although there are a few more steps required to fix this. We'll need to import
-the public key management from <a href="https://secret.cards">secret.cards</a>
-to allow players to sign their commitments, and a way for players to
-establish identity out-of-band.
+<img src="images/d4.png" height="128px" alt="All 4-sided die faces in different orientations" />
+<p>
+If a dishonest player is colluding with the server, they could team up
+to send fake commitments for another player since the cheater can leak
+the shared secret and then the server can fake the source id.
+This is difficult since the honest player has no way to deny that they 
+sent the messages.
+<p>
+Instead we've imported the public key management from
+<a href="https://secret.cards">secret.cards</a> that generates an
+ephemeral signing key as part of joining the room and shares the
+key as part of setting up the shared secret.  Then all messages from
+that player to the room are signed with that player's key and then
+encrypted with the shared secret.  The other players can verify that
+the messgae is encrypted with the correct secret (using AES-GCM)
+and then verify that the signature on the message matches the claimed
+source that sent it.
 
-<h3>Adding new dice sets?</h3>
+<h2>How can player's verify the other players?</h2>
+The hash of the shared secret is presented as a four-word verification
+phrase, and the public keys for each other player are also shown with
+a similar phrase.  Players can verify these phrases out-of-band, such
+as on a separate audio chat, and then have some confidence that their
+session is secured with the correct key (and that no one is leaking it)
+and that the players are who they claim to be.
+
+
+<h2>Adding new dice sets?</h2>
+<img src="images/d12-1.png" height="128px" alt="12-sided die faces" />
+<p>
 You can checkout the <a href="https://github.com/osresearch/diceroll-games/">source code</a>
 and add new dice to the <em>docs/dice.json</em> file.  Eventually there
 should be a drag-and-drop way to add new images and sets.
