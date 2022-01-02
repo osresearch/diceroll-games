@@ -41,6 +41,11 @@ constructor(server=document.location.origin, room=document.location.hash)
 	this.modulus = (1n << 255n) - 19n; // 25519, should be a sophie prime?
 	this.handlers = {};
 
+	// maintain ordering of rx and tx events with
+	// promises chained off these
+	this.rx_chain = true;
+	this.tx_chain = true;
+
 	// generate our private group key component
 	// which is used to derive the shared encryption key
 	this.exponent = randomBigInt(64);
@@ -49,11 +54,6 @@ constructor(server=document.location.origin, room=document.location.hash)
 	// and our public identity key, which will be used to sign
 	// messages from us.
 	this.id_create();
-
-	// maintain ordering of rx and tx events with
-	// promises chained off these
-	this.rx_chain = true;
-	this.tx_chain = true;
 
 	// called when a connection to the server is established
 	this.sock.on('connect', () => {
@@ -155,7 +155,7 @@ id_create()
 		return window.crypto.subtle.exportKey('jwk', k.publicKey);
 	}).then((jwk) => {
 		this.id_public = jwk;
-		this.id = words.bigint2words(jwk2id(jwk), 4);
+		this.id = words.bigint2words(jwk2id(jwk), 2);
 		console.log("identity", this.id);
 	});
 }
@@ -236,26 +236,26 @@ rekey_pubkey(src,pubkey,id_public)
 	if (peer.pubkey != null)
 		return this.error("already received pubkey");
 
-	window.crypto.subtle.importKey(
-		'jwk',
-		id_public,
-		this.key_param,
-		true,
-		[ 'verify' ]
-	).then((imported_public) => {
-		peer.id_public = imported_public;
-	});
-
-	peer.id = words.bigint2words(jwk2id(id_public), 4);
-
+	peer.id = words.bigint2words(jwk2id(id_public), 2);
 	peer.pubkey = BigInt("0x" + pubkey);
-
 	console.log(peer.id, "pubkey", pubkey);
 
-	// if this is our predecessor in the ring,
-	// move it to phase 2
-	if (src == this.prev)
-		this.rekey_pubkey2(src, pubkey);
+	this.rx_chain = Promise.resolve(this.rx_chain).then(() => {
+		return window.crypto.subtle.importKey(
+			'jwk',
+			id_public,
+			this.key_param,
+			true,
+			[ 'verify' ]
+		);
+	}).then((imported_public) => {
+		peer.id_public = imported_public;
+
+		// if this is our predecessor in the ring,
+		// move it to phase 2
+		if (src == this.prev)
+			this.rekey_pubkey2(src, pubkey);
+	});
 }
 
 // a partial pubkey from our predecessor
@@ -291,16 +291,28 @@ rekey_complete(pubkey)
 	// compute the updated group key
 	const privkey = modExp(pubkey, this.exponent, this.modulus);
 
-	// and the verification phrase for the group key
-	this.key_phrase = words.bigint2words(sha256BigInt(privkey), 4);
+	// and the verification phrase for the group key and all the clients
+	const sorted = Object.keys(this.peers).sort();
+	let everything = privkey.toString(16);
+	for(let src of sorted)
+	{
+		const peer = this.peers[sorted];
+		everything += jwk2id(peer.id_public).toString(16);
+	}
 
-	crypto.subtle.importKey(
-		"raw",
-		Uint8Array.from(arrayFromBigInt(privkey)),
-		'AES-GCM',
-		false,
-		["encrypt", "decrypt"]
-	).then((key_encoded) => {
+	const hash = sha256.sha256hex(everything.split(''));
+	this.key_phrase = words.bigint2words(BigInt("0x" + hash), 5);
+	console.log("verification", this.key_phrase);
+
+	this.tx_chain = Promise.resolve(this.tx_chain).then(() => {
+		return crypto.subtle.importKey(
+			"raw",
+			Uint8Array.from(arrayFromBigInt(privkey)),
+			'AES-GCM',
+			false,
+			["encrypt", "decrypt"]
+		);
+	}).then((key_encoded) => {
 		this.privkey = key_encoded;
 
 		console.log("private key", privkey.toString(16), this.peers, this.removed_peers);

@@ -144,7 +144,7 @@ function peer_add(peer)
 	n.id = "peerlist-" + peer.id;
 
 	n.innerText = peer.nick;
-	n.title = "Verification code " + peer.id;
+	//n.title = "Verification code " + peer.id;
 	li.appendChild(n);
 	d.appendChild(li);
 
@@ -173,7 +173,7 @@ function peer_add(peer)
 
 		editing = () => {
 			help.parentNode.removeChild(help);
-			n.title = "Your verification code " + peer.id;
+			//n.title = "Your verification code " + peer.id;
 		};
 	}
 
@@ -238,7 +238,7 @@ sock.on('members', (peers,removed_peers) => {
 sock.on('group-verify', (peer,their_phrase) => {
 	if (their_phrase != sock.key_phrase)
 	{
-		log_append(peer, "GROUP MIGHT BE COMPROMISED: " + their_phrase + "!=" + this.key_phrase, 'message-server');
+		log_append(peer, "GROUP MIGHT BE COMPROMISED: " + their_phrase + "!=" + sock.key_phrase, 'message-server');
 	} else {
 		log_append(peer, "verified group phrase", 'debug-msg');
 		// todo: did we get these from everyone?
