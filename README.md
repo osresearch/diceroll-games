@@ -2,7 +2,7 @@
 
 # multiparty cryptographic dice rolling server
 
-![die 1](docs/images/pips/pips-1.png)
+![die 1](docs/images/d6.png)
 
 With diceroll.games you can play dice games with untrustworhy
 friends using cryptographic commitments and end-to-end encrypted
@@ -16,7 +16,7 @@ API.
 
 ## Playing games
 
-![die 2](docs/images/pips/pips-2.png)
+![die 2](docs/images/d8.png)
 
 Send the full URL including the `#abcd-xyzw...` portion to the
 other players.  Set your nickname by clicking on the blue
@@ -27,7 +27,7 @@ Hit `Roll the dice!` and hope for the best!
 
 ## Deployment
 
-![die 3](docs/images/pips/pips-3.png)
+![die 3](docs/images/d12-1.png)
 
 The static pages in the `docs/` directory are hosted via github pages
 at https://diceroll.games/ and and a free Heroku dyno is 
@@ -40,13 +40,13 @@ that server changes can be tested without deployment.
 
 ## Adding dice
 
-![die 4](docs/images/pips/pips-4.png)
+![die 4](docs/images/d12-2.png)
 
 Check out `docs/dice.json` to see how to add new dice or sets.
 
 ## Debugging Setup
 
-![die 5](docs/images/pips/pips-5.png)
+![die 5](docs/images/d4.png)
 
 After checkout:
 
@@ -65,7 +65,7 @@ And go to http://localhost:9999/ to load the dice rolling page
 
 ## Security analysis
 
-![die 5](docs/images/pips/pips-5.png)
+![die 5](docs/images/eightball.png)
 
 Please contribute if you can! Is the DH implementation ok?
 Is AES-GCM the right approach? Feel free to poke at it!
