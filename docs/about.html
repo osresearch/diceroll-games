@@ -35,12 +35,7 @@ body  {
 
 <h1>Cryptographic Dice?</h1>
 
-<img src="images/pips/pips-1.png" id="die-0" width="128px" />
-<img src="images/pips/pips-2.png" id="die-1" width="128px" />
-<img src="images/pips/pips-3.png" id="die-2" width="128px" />
-<img src="images/pips/pips-4.png" id="die-3" width="128px" />
-<img src="images/pips/pips-5.png" id="die-4" width="128px" />
-<img src="images/pips/pips-6.png" id="die-5" width="128px" />
+<img src="images/d6.png" />
 
 <p>
 
@@ -59,6 +54,7 @@ key, which protects against the server or a MITM attempting to
 sneak in a fake key for a player.
 
 <h2>Flipping coins over the phone</h2>
+<img src="images/coin.png" />
 To understand how it works, consider a thought experiment of how you
 would flip a coin with an unscrupulous person on the phone.  You can't
 trust them to flip the coin and tell you the result.  Likewise they
@@ -129,19 +125,4 @@ You can checkout the <a href="https://github.com/osresearch/diceroll-games/">sou
 and add new dice to the <em>docs/dice.json</em> file.  Eventually there
 should be a drag-and-drop way to add new images and sets.
 
-<script>
-function die_replace()
-{
-	const which = Math.floor(Math.random() * 10);
-	const result = Math.floor(Math.random() * 6) + 1;
-
-	const d = document.getElementById("die-" + which);
-	if (!d)
-		return;
-
-	d.src = "images/pips/pips-" + result + ".png";
-}
-
-setInterval(die_replace, 300);
-</script>
 </html>
