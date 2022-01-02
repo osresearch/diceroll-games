@@ -50,6 +50,11 @@ constructor(server=document.location.origin, room=document.location.hash)
 	// messages from us.
 	this.id_create();
 
+	// maintain ordering of rx and tx events with
+	// promises chained off these
+	this.rx_chain = true;
+	this.tx_chain = true;
+
 	// called when a connection to the server is established
 	this.sock.on('connect', () => {
 		console.log(this.server, "RECONNECTED id=", this.sock.id);
@@ -138,11 +143,13 @@ id_create()
 		hash: { name: "SHA-256" },
 	};
 
-	window.crypto.subtle.generateKey(
-		this.key_param,
-		true,
-		["sign", "verify"]
-	).then((k) => {
+	this.tx_chain = Promise.resolve(this.tx_chain).then(() => {
+		return window.crypto.subtle.generateKey(
+			this.key_param,
+			true,
+			["sign", "verify"]
+		);
+	}).then((k) => {
 		console.log("Key created", k);
 		this.id_private = k.privateKey;
 		return window.crypto.subtle.exportKey('jwk', k.publicKey);
@@ -331,14 +338,19 @@ rx_raw(src,counter,msg,signature)
 	const enc_buf = msg;
 	let clear_buf;
 
-	window.crypto.subtle.decrypt(
-		{
-			name: "AES-GCM",
-			iv: Uint8Array.from(counter_buf),
-		},
-		this.privkey,
-		enc_buf
-	).catch((err) => {
+	// don't start processing this rx until any other pending
+	// ones have completed, otherwise message ordering can
+	// be bad
+	this.rx_chain = Promise.resolve(this.rx_chain).then(() => {
+		return window.crypto.subtle.decrypt(
+			{
+				name: "AES-GCM",
+				iv: Uint8Array.from(counter_buf),
+			},
+			this.privkey,
+			enc_buf
+		);
+	}).catch((err) => {
 		console.log(src, "GCM ERROR", msg, enc_buf, err);
 		this.handle("decryption-failure", peer);
 		return null;
@@ -376,8 +388,11 @@ rx_raw(src,counter,msg,signature)
 		if (!("msg" in msg))
 			return;
 
+		console.log(peer.id, "RX", msg.topic);
 		return this.handle(msg.topic, peer, ...msg.msg);
 	});
+
+	return this.rx_chain;
 }
 
 
@@ -391,11 +406,13 @@ tx_raw(buf)
 	const encoded_buf = new TextEncoder().encode(buf);
 	let signature;
 
-	window.crypto.subtle.sign(
-		this.key_param,
-		this.id_private,
-		encoded_buf
-	).then((signed_buf) => {
+	this.tx_chain = Promise.resolve(this.tx_chain).then(() => {
+		return window.crypto.subtle.sign(
+			this.key_param,
+			this.id_private,
+			encoded_buf
+		);
+	}).then((signed_buf) => {
 		signature = signed_buf;
 		return window.crypto.subtle.encrypt(
 			{
@@ -408,9 +425,12 @@ tx_raw(buf)
 	}).then((encrypted_buf) => {
 		// there has to be a better way, but wtf javascript
 		//const msg_hex = arrayToBigInt(new Uint8Array(enc)).toString(16);
+		console.log("TX");
 		const counter_hex = counter.toString(16);
 		this.sock.emit("message", counter_hex, encrypted_buf, signature);
 	});
+
+	return this.tx_chain;
 }
 
 
