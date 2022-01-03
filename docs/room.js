@@ -22,12 +22,16 @@ function jwk2id(jwk)
 	return BigInt("0x" + sha256.sha256hex(id.split('')));
 }
 
+// time in milliseconds
+function now()
+{
+	return new Date().getTime();
+}
+
 class Room
 {
-rekeyed() {}
-
-error(s) {
-	console.log(s);
+error(s, ...args) {
+	console.log(s, ...args);
 }
 
 constructor(server=document.location.origin, room=document.location.hash)
@@ -40,6 +44,7 @@ constructor(server=document.location.origin, room=document.location.hash)
 	this.base = 2; // small base is ok
 	this.modulus = (1n << 255n) - 19n; // 25519, should be a sophie prime?
 	this.handlers = {};
+	this.state = "disconnected";
 
 	// maintain ordering of rx and tx events with
 	// promises chained off these
@@ -48,8 +53,10 @@ constructor(server=document.location.origin, room=document.location.hash)
 
 	// generate our private group key component
 	// which is used to derive the shared encryption key
-	this.exponent = randomBigInt(64);
+	this.exponent = randomBigInt(32);
 	this.pubkey = modExp(this.base, this.exponent, this.modulus);
+
+	console.log("exponent", this.exponent.toString(16), "pubkey", this.pubkey.toString(16));
 
 	// and our public identity key, which will be used to sign
 	// messages from us.
@@ -57,6 +64,7 @@ constructor(server=document.location.origin, room=document.location.hash)
 
 	// called when a connection to the server is established
 	this.sock.on('connect', () => {
+		this.set_state("connected");
 		console.log(this.server, "RECONNECTED id=", this.sock.id);
 
 		// rejoin the desired room
@@ -72,6 +80,8 @@ constructor(server=document.location.origin, room=document.location.hash)
 	// the server adds an peer to the room, but it will appear
 	// in the peer list.
 	this.sock.on('members', (room, peers) => {
+		if (this.state != "connected")
+			console.log(this.server, "unexpected members message");
 		console.log(this.server, room, "peers", peers);
 
 		// delete any peers not in the new list
@@ -103,6 +113,9 @@ constructor(server=document.location.origin, room=document.location.hash)
 	// called by the server when a new peer joins the room
 	// we must begin a new group key agreement at this point.
 	this.sock.on('connected', (src) => {
+		if (this.state != "secure")
+			console.log(this.server, "unexpected peer join");
+
 		console.log(this.server, this.room, "new peer", src);
 
 		if (src in this.peers)
@@ -117,6 +130,9 @@ constructor(server=document.location.origin, room=document.location.hash)
 
 	// trigger a rekey when a peer leaves the room
 	this.sock.on('disconnected', (src) => {
+		if (this.state != "secure")
+			console.log(this.server, "unexpected peer departure");
+
 		console.log(this.server, this.room, "peer left", src);
 		if (!(src in this.peers))
 			return this.error("unknown peer left");
@@ -128,11 +144,55 @@ constructor(server=document.location.origin, room=document.location.hash)
 	});
 
 	// called in the first round of key generation
-	this.sock.on('pubkey', (src,pubkey,id_public) => this.rekey_pubkey(src,pubkey,id_public))
-	this.sock.on('pubkey2', (src,pubkey) => this.rekey_pubkey2(src,pubkey))
+	this.sock.on('pubkey', (src,pubkey,id_public) => {
+		this.rx_chain = Promise.resolve(this.rx_chain)
+			.then(() => this.rekey_pubkey(src,pubkey,id_public));
+	});
+
+	this.sock.on('pubkey2', (src,pubkey) => {
+		this.rx_chain = Promise.resolve(this.rx_chain)
+			.then(() => this.rekey_pubkey2(src,pubkey));
+	});
 
 	// called when an encrypted message arrives
-	this.sock.on('message', (src,counter,msg,sig) => this.rx_raw(src,counter,msg,sig));
+	//this.sock.on('message', (src,counter,msg,sig) => this.rx_raw(src,counter,msg,sig));
+
+	// wait for the privkey to become available before trying to
+	// receive the message
+	this.sock.on('message', (src,counter,msg,sig) => {
+		this.rx_chain = Promise.resolve(this.rx_chain)
+			.then(() => this.rx_raw(src,counter,msg,sig));
+	});
+
+	// wait for an authenticated message from each peer
+	this.on('group-verify', (peer,phrase) => {
+
+		if (this.key_phrase != phrase)
+		{
+			this.set_state("verify-failed", peer);
+			return;
+		}
+
+		peer.verified = true;
+
+		// if all peers have verified, then we're done
+		for(let src in this.peers)
+		{
+			if (!this.peers[src].verified)
+				return;
+		}
+
+		this.set_state("secured");
+	});
+}
+
+set_state(new_state)
+{
+	this.state_start = now();
+	this.state = new_state;
+
+	console.log(this.state_start, "new state", new_state);
+	this.handle("state", new_state);
 }
 
 id_create()
@@ -202,22 +262,38 @@ peer_find()
 // we don't need to dump our key, do we?
 rekey()
 {
-	console.log("REKEY INITIATED " + this.peer_count() + " peers");
+	this.set_state("rekeying");
 
-	// destroy the old private key
+	console.log("REKEY INITIATED " + this.peer_count() + " peers");
+	console.log("exponent", this.exponent.toString(16), "public", this.pubkey.toString(16));
+
+	// destroy the old private keys
 	this.privkey = null;
+	this.partial_key = null;
+
+	// cancel any pending rx
+	this.rx_deferred = [];
 
 	// erase the old pubkey components from each of our peers
-	for(const peer in this.peers)
-		this.peers[peer].pubkey = null;
+	for(const src in this.peers)
+	{
+		const peer = this.peers[src];
+		peer.pubkey = null;
+		peer.id_public = null;
+		peer.verified = false;
+	}
+		
 
 	// if there are no peers, then we don't have to negotiate anything
 	if (this.peer_count() == 0)
-		return this.rekey_complete(this.base);
+	{
+		this.partial_key = this.base;
+		return this.rekey_complete();
+	}
 
 	// figure out who our next peer is this time
 	this.peer_find();
-	console.log("next/prev=", this.next, this.prev);
+	console.log("next", this.next, "prev", this.prev);
 	this.pubkeys_received = 0;
 
 	// send the public part of our group key
@@ -227,8 +303,11 @@ rekey()
 }
 
 // when we receive a pubkey from a peer
-rekey_pubkey(src,pubkey,id_public)
+rekey_pubkey(src,pubkey_hex,id_public)
 {
+	if (this.state != "rekeying")
+		console.log(src, "unexpected pubkey message");
+
 	if (!(src in this.peers))
 		return this.error("unknown peer");
 
@@ -236,9 +315,16 @@ rekey_pubkey(src,pubkey,id_public)
 	if (peer.pubkey != null)
 		return this.error("already received pubkey");
 
+	const pubkey = BigInt("0x" + pubkey_hex);
+	peer.pubkey = pubkey;
 	peer.id = words.bigint2words(jwk2id(id_public), 2);
-	peer.pubkey = BigInt("0x" + pubkey);
-	console.log(peer.id, "pubkey", pubkey);
+	console.log(src, peer.id, "pubkey", pubkey_hex);
+
+	// if this is our predecessor in the ring,
+	// move it to phase 2; this does not require the
+	// promise to have resolved
+	if (src == this.prev)
+		this.rekey_pubkey2(src, pubkey_hex);
 
 	this.rx_chain = Promise.resolve(this.rx_chain).then(() => {
 		return window.crypto.subtle.importKey(
@@ -251,52 +337,83 @@ rekey_pubkey(src,pubkey,id_public)
 	}).then((imported_public) => {
 		peer.id_public = imported_public;
 
-		// if this is our predecessor in the ring,
-		// move it to phase 2
-		if (src == this.prev)
-			this.rekey_pubkey2(src, pubkey);
+		// otherwise see if this completes our rekeying
+		// process; it is safe to call this early since
+		// it verifies that all of the prereqs are ready
+		this.rekey_complete();
 	});
 }
 
 // a partial pubkey from our predecessor
-rekey_pubkey2(src, pubkey)
+rekey_pubkey2(src, pubkey_hex)
 {
+	if (this.state != "rekeying")
+		console.log(src, "unexpected pubkey2");
+
 	// we should only get a pubkey2 from our immediate predecessor
 	if (src != this.prev)
 		return this.error("pubkey2 from wrong peer");
+
+	console.log(src, "pubkey2", this.pubkeys_received, pubkey_hex);
+
+	const pubkey = BigInt("0x" + pubkey_hex);
 
 	// if we have received the correct number of pubkey2 messages
 	// (one partial per peer), then we can finalize the rekey
 	// todo: verify that we have received from each peer
 	if (++this.pubkeys_received >= this.peer_count())
-		return this.rekey_complete(pubkey);
+	{
+		this.partial_key = pubkey;
+		console.log(this.peers[src].id, "new partial key", pubkey_hex);
+		return this.rekey_complete();
+	}
 
+	// Note that we *DO NOT* send the final pubkey to our peer;
+	// it has all of the other partial components from the peers
+	// on it, so performing our modexp would reveal the key.
 	// compute the new pubkey and forward it to our next peer
 	const new_pubkey = modExp(pubkey, this.exponent, this.modulus).toString(16);
-	console.log("partial " + this.pubkeys_received, new_pubkey);
+	console.log("sending partial " + (this.pubkeys_received-1), this.next, new_pubkey);
 	this.sock.emit('to', this.next, 'pubkey2', new_pubkey);
 }
 
 // all rounds completed
-rekey_complete(pubkey)
+rekey_complete()
 {
-	// verify that we have pubkeys for all of our peers
-	for(let peer in this.peers)
+	if (this.state == "secured")
 	{
-		if (this.peers[peer].pubkey)
-			continue;
-		return this.error("peer did not send pubkey");
+		console.log("already complete?");
+		return;
+	}
+
+	if (this.state != "rekeying")
+	{
+		console.log("unexpected rekey_complete");
+		return;
+	}
+
+	// verify that we have pubkeys for all of our peers
+	// and the partial key from the rest of them.
+	// if not wait until we do
+	if (!this.partial_key)
+		return;
+
+	for(let src in this.peers)
+	{
+		if (!this.peers[src].id_public)
+			return;
 	}
 
 	// compute the updated group key
-	const privkey = modExp(pubkey, this.exponent, this.modulus);
+	const privkey = modExp(this.partial_key, this.exponent, this.modulus);
+	console.log("encryption key", privkey.toString(16));
 
 	// and the verification phrase for the group key and all the clients
 	const sorted = Object.keys(this.peers).sort();
 	let everything = privkey.toString(16);
 	for(let src of sorted)
 	{
-		const peer = this.peers[sorted];
+		const peer = this.peers[src];
 		everything += jwk2id(peer.id_public).toString(16);
 	}
 
@@ -304,18 +421,20 @@ rekey_complete(pubkey)
 	this.key_phrase = words.bigint2words(BigInt("0x" + hash), 5);
 	console.log("verification", this.key_phrase);
 
-	this.tx_chain = Promise.resolve(this.tx_chain).then(() => {
-		return crypto.subtle.importKey(
+	this.rx_chain = crypto.subtle.importKey(
 			"raw",
 			Uint8Array.from(arrayFromBigInt(privkey)),
 			'AES-GCM',
 			false,
 			["encrypt", "decrypt"]
-		);
-	}).then((key_encoded) => {
+	).then((key_encoded) => {
 		this.privkey = key_encoded;
 
 		console.log("private key", privkey.toString(16), this.peers, this.removed_peers);
+
+		// once the privkey is available, set our state to
+		// secured and let the user know the member set
+		this.set_state("keyed");
 		this.handle('members', this.peers, this.removed_peers);
 		this.removed_peers = {};
 
@@ -323,7 +442,13 @@ rekey_complete(pubkey)
 		// (the actual contents of this message don't matter,
 		// since it is encrypted with the key, so this is mostly
 		// to ensure that everyone can decrypt our messages)
+		console.log("tx group verify", this.key_phrase);
 		this.emit('group-verify', this.key_phrase);
+
+		// process any deferred rx
+		for(let args of this.rx_deferred)
+			this.rx_raw(...args);
+		this.rx_deferred = [];
 	});
 }
 
@@ -332,17 +457,26 @@ rekey_complete(pubkey)
  * Now that all the peers have a shared secret key, we use it
  * to establish an encrypted channel.  Additionally all messages
  * from the peers must be signed with their public key
+ *
+ * There is an rx_chain promise that ensures that these will be
+ * handled in order.  The top-level handler for the encrypted messages
+ * ensures that we're on that chain
  */
-rx_raw(src,counter,msg,signature)
+rx_raw(src,counter_hex,msg,signature)
 {
-	if (!this.privkey)
-		return this.error("encrypted message without privkey");
 	if (!(src in this.peers))
 		return this.error("encrypted message from unknown peer");
 
+	if (!this.privkey)
+	{
+		// defer until rekeying is done
+		this.rx_deferred.push([src,counter_hex,msg,signature]);
+		return;
+	}
+
 	const peer = this.peers[src];
 
-	counter = BigInt("0x" + counter);
+	const counter = BigInt("0x" + counter_hex);
 	const counter_buf = arrayFromBigInt(counter, 16);
 
 	// THERE HAS GOT TO BE A BETTER WAY
@@ -350,23 +484,21 @@ rx_raw(src,counter,msg,signature)
 	const enc_buf = msg;
 	let clear_buf;
 
-	// don't start processing this rx until any other pending
-	// ones have completed, otherwise message ordering can
-	// be bad
-	this.rx_chain = Promise.resolve(this.rx_chain).then(() => {
-		return window.crypto.subtle.decrypt(
-			{
-				name: "AES-GCM",
-				iv: Uint8Array.from(counter_buf),
-			},
-			this.privkey,
-			enc_buf
-		);
-	}).catch((err) => {
-		console.log(src, "GCM ERROR", msg, enc_buf, err);
+	return window.crypto.subtle.decrypt(
+		{
+			name: "AES-GCM",
+			iv: Uint8Array.from(counter_buf),
+		},
+		this.privkey,
+		enc_buf
+	).catch((err) => {
+		console.log(src, "GCM ERROR", counter_hex, msg, signature, err);
 		this.handle("decryption-failure", peer);
 		return null;
 	}).then((buf) => {
+		if (!buf)
+			return false;
+
 		clear_buf = buf;
 		return window.crypto.subtle.verify(
 			this.key_param,
@@ -404,14 +536,17 @@ rx_raw(src,counter,msg,signature)
 		return this.handle(msg.topic, peer, ...msg.msg);
 	});
 
-	return this.rx_chain;
+	//return this.rx_chain;
 }
 
 
 tx_raw(buf)
 {
 	if (!this.privkey)
-		return this.error("encrypted tx without privkey");
+	{
+		console.log("tx before secured channel established");
+		return;
+	}
 
 	const counter = randomBigInt(16);
 	const counter_buf = arrayFromBigInt(counter, 16);
@@ -437,12 +572,10 @@ tx_raw(buf)
 	}).then((encrypted_buf) => {
 		// there has to be a better way, but wtf javascript
 		//const msg_hex = arrayToBigInt(new Uint8Array(enc)).toString(16);
-		console.log("TX");
 		const counter_hex = counter.toString(16);
+		console.log("TX", counter_hex, encrypted_buf, signature);
 		this.sock.emit("message", counter_hex, encrypted_buf, signature);
 	});
-
-	return this.tx_chain;
 }
 
 
@@ -460,6 +593,7 @@ emit(topic, ...args)
 		topic: topic,
 		msg: [...args],
 	};
+
 	this.tx_raw(JSON.stringify(msg));
 }
 

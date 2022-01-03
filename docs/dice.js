@@ -235,22 +235,27 @@ sock.on('members', (peers,removed_peers) => {
 		log_append(peer_server, 'Group verification phrase ' + sock.key_phrase, 'message-server');
 });
 
-sock.on('group-verify', (peer,their_phrase) => {
-	if (their_phrase != sock.key_phrase)
-	{
-		log_append(peer, "GROUP MIGHT BE COMPROMISED: " + their_phrase + "!=" + sock.key_phrase, 'message-server');
-	} else {
-		log_append(peer, "verified group phrase", 'debug-msg');
-		// todo: did we get these from everyone?
-	}
+sock.on('state', (new_state) => {
+	const d = document.getElementById("status");
+	if (!d)
+		return;
+	console.log("-----", new_state);
+	d.innerText = new_state;
+	d.classList = 'status status-' + new_state;
+
+	if (new_state == 'secured')
+		d.title = "Verification phrase " + sock.key_phrase;
 });
+
 
 sock.on('decryption-failure', (peer,msg) => {
 	log_append(peer, "DECRYPTION FAILURE", 'message-server');
+	sock.set_state('insecure');
 });
 sock.on('signature-failure', (peer,msg) => {
 	log_append(peer, "SIGNATURE FAILURE", 'message-server');
 	console.log(peer.id, msg);
+	sock.set_state('insecure');
 });
 
 function nick_set(new_nick)
