@@ -125,6 +125,12 @@ body  {
 	padding: 5px 20px 5px 20px;
 }
 
+.status { }
+.status-connected { color: #aaa; }
+.status-rekeying { color: #00f; }
+.status-verify-failed { color: #f00; }
+.status-insecure { color: #f00; }
+
 /*
  * Messages to and from other players
  */
@@ -175,6 +181,7 @@ body  {
 	<a href="about.html">About</a>
 	<a href="https://github.com/osresearch/diceroll-games/">Source</a>
 	<a id="invite-link" href="">Invite link</a>
+	<span id="status">Status</span>
 </div>
 <div id="nick-container">
 	<div id="nicks-header">Players</div>
