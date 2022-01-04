@@ -156,7 +156,6 @@ function peer_add(peer)
 
 	// this is our own entry
 	n.classList.add('nick-self');
-	n.id = "players-nick-self";
 
 	let editing = () => {};
 
