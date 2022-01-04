@@ -403,6 +403,7 @@ function roll_finalize(sock, which, tag)
 	div.style.height = width + "px";
 	div.style.overflow = "hidden";
 	div.style.float = "left";
+	div.id = "roll-" + tag;
 
 	const img = document.createElement('img');
 	img.height = width; // only set the height; the width will be set by the div
@@ -451,9 +452,6 @@ function roll_row_create(peer, children)
 	d.appendChild(orow);
 	d.style.clear = "both";
 
-	const old = r.firstChild;
-	if (old)
-		old.style.opacity = 0.5;
 	r.insertBefore(d, r.firstChild);
 
 	if (children)
@@ -466,7 +464,17 @@ function roll_new_set(peer, new_die)
 {
 	dice_set = new_die;
 	console.log(peer.id, "initiated new roll");
-	roll_row_create(peer);
+
+	// turn the previous roll into a old-roll
+	for(let d of document.querySelectorAll('.roll-current'))
+	{
+		d.classList.remove('roll-current');
+		d.classList.add('roll-old');
+	}
+
+	// create a new row and flag it as the current one
+	const r = roll_row_create(peer);
+	r.classList.add('roll-current');
 }
 
 function roll_all()
