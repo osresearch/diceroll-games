@@ -363,6 +363,8 @@ function roll_finalize(sock, which, tag)
 	const roll = rolls[tag];
 	const short_tag = tag.substr(0,16);
 
+	const die = dice_set[which];
+	const sides = die.sides;
 	let result = BigInt("0x" + tag);
 	const base = (1n << 255n) - 19n;
 
@@ -379,18 +381,23 @@ function roll_finalize(sock, which, tag)
 		result = modExp(result, roll[peer.id].value, base);
 	}
 
-	// hash the result to mix it a bit more
-	result = sha256BigInt(result);
+	// hash the result until the bottom byte is special
+	// to avoid minor unfairness of mod operator on a power of 2 value
+	let iters = 0;
+	let short_result;
+	do {
+		result = sha256BigInt(result);
+		iters++;
+	} while((result & 0xFFn) != 0n)
 
-	const die = dice_set[which];
-	const sides = BigInt(die.sides);
-	const short_result = Number(result % sides);
+	//short_result = Number((result >> 8n) % BigInt(sides));
+	short_result = iters % sides;
 	const image = die.image;
 	const width = 256;
 	const offset = width * short_result;
 
 	//log_append(sock.id, short_tag + " die-" + which + " => " + short_result);
-	console.log("RESULT", tag, result, short_result, image);
+	console.log("RESULT", tag, iters, result, short_result, image);
 
 	// create a new output die for this roll
 	const d = document.getElementById("rolls");
