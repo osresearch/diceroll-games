@@ -449,6 +449,10 @@ rekey_complete()
 		for(let args of this.rx_deferred)
 			this.rx_raw(...args);
 		this.rx_deferred = [];
+
+		// and if we are the only peer, then we're secure
+		if (this.peer_count() == 0)
+			this.set_state("secured");
 	});
 }
 
