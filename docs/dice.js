@@ -392,7 +392,7 @@ function roll_finalize(sock, which, tag)
 	//short_result = Number((result >> 8n) % BigInt(sides));
 	short_result = iters % sides;
 	const image = die.image;
-	const max_width = window.innerWidth / dice_set.length - 10;
+	const max_width = (window.innerWidth - 100) / dice_set.length;
 	const width = max_width > 256 ? 256 : max_width < 100 ? 100 : max_width;
 	const offset = width * short_result;
 
